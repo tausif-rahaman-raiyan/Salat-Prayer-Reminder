@@ -4,7 +4,7 @@
  * companion website receives its build version from Vite at build time.
  */
 export const GITHUB_REPO = 'tausif-rahaman-raiyan/Salat-Prayer-Reminder';
-export const BASE_VERSION = '2.2.0';
+export const BASE_VERSION = '0.0.0';
 
 function getRuntimeVersion() {
   try {
