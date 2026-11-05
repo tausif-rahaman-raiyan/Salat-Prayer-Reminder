@@ -9,6 +9,8 @@ export const DEFAULT_SETTINGS = {
   calculationMethod: 1, // University of Islamic Sciences, Karachi
   asrMethod: 1, // 1 = Hanafi, 0 = Shafi/Standard
   notificationsEnabled: true,
+  strictSalahMode: true,
+  strictReminderIntervalMinutes: 10,
   snoozeMinutes: 5,
   focusDurationMinutes: 8,
   prayerWindowDurationMinutes: 45,
