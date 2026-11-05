@@ -7,7 +7,7 @@ export const PRAYER_LIST = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 /**
  * Gets recorded prayer data for a date. Auto-marks expired un-marked prayers as 'missed'.
  */
-export async function getPrayerRecordForDate(dateStr = getDhakaDateString()) {
+export async function getPrayerRecordForDate(dateStr = getDhakaDateString(), scheduleOverride = null) {
   const key = `prayer_log_${dateStr}`;
   const data = await getStorageData(key);
   const record = data[key] || {
@@ -24,7 +24,7 @@ export async function getPrayerRecordForDate(dateStr = getDhakaDateString()) {
   try {
     const todayStr = getDhakaDateString();
     if (dateStr <= todayStr) {
-      const schedule = await fetchPrayerTimings();
+      const schedule = scheduleOverride || await fetchPrayerTimings();
       if (schedule && schedule.timings) {
         const settings = await getSettings();
         const offsets = settings.timingOffsets || {};
@@ -86,6 +86,20 @@ export async function recordPrayerStatus(dateStr, prayerKey, status) {
   };
 
   await setStorageData({ [key]: updated });
+
+  // Keep the active browser overlay in sync with dashboard prayer status changes.
+  if (status === 'prayed' || status === 'missed') {
+    const sessionData = await getStorageData('active_prayer_session');
+    const session = sessionData.active_prayer_session;
+    if (session && session.date === dateStr && session.prayerKey === prayerKey) {
+      await setStorageData({
+        active_prayer_session: {
+          ...session, state: status, completedAt: Date.now(),
+          snoozeUntil: null, focusStart: null, focusEnd: null
+        }
+      });
+    }
+  }
   return updated;
 }
 
