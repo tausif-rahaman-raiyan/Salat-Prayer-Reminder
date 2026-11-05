@@ -55,7 +55,7 @@ import {
   clearActiveTimerState
 } from '../prayer-focus-v2/modules/quran-timer.js';
 import { getSettings, saveSettings } from '../prayer-focus-v2/modules/storage.js';
-import { checkGitHubUpdate, getInstalledVersion, applyAutoUpdate } from '../prayer-focus-v2/modules/version-checker.js';
+import { checkGitHubUpdate, getInstalledVersion } from '../prayer-focus-v2/modules/version-checker.js';
 import { Language, TRANSLATIONS } from './translations';
 import { DocsPage } from './DocsPage';
 import { GitGuidePage } from './GitGuidePage';
@@ -67,7 +67,7 @@ export default function App() {
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<any>(null);
-  const [installedVersion, setInstalledVersionState] = useState<string>('2.1.0');
+  const [installedVersion, setInstalledVersionState] = useState<string>('2.2.0');
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [settings, setSettings] = useState<any>({
@@ -78,6 +78,8 @@ export default function App() {
     calculationMethod: 1,
     asrMethod: 1,
     notificationsEnabled: true,
+    strictSalahMode: true,
+    strictReminderIntervalMinutes: 10,
     snoozeMinutes: 5,
     focusDurationMinutes: 8,
     dailyQuranGoalMinutes: 15,
@@ -196,6 +198,17 @@ export default function App() {
     }
     loadMonth();
   }, [calYear, calMonth]);
+
+  // Refresh records periodically so an open web dashboard also applies prayer end limits.
+  useEffect(() => {
+    const refreshPrayerStatus = async () => {
+      const record = await getPrayerRecordForDate(todayStr);
+      setTodayRecord(record);
+      setTodayStats(await getTodayStats(todayStr));
+    };
+    const interval = window.setInterval(() => { void refreshPrayerStatus(); }, 30000);
+    return () => window.clearInterval(interval);
+  }, [todayStr]);
 
   // Handlers for prayer recording
   const handleTogglePrayer = async (key: string, targetStatus: 'prayed' | 'missed') => {
@@ -850,116 +863,84 @@ export default function App() {
         {/* TAB 3: GITHUB PUSH & YAML WORKFLOW GUIDE */}
         {activeTab === 'git-guide' && <GitGuidePage lang={lang} />}
 
-        {/* TAB 4: POPUP PREVIEW */}
+        {/* TAB 4: TOOLBAR POPUP PREVIEW */}
         {activeTab === 'popup-preview' && (
-          <div className="max-w-md mx-auto space-y-6">
+          <div className="mx-auto w-full max-w-[390px] space-y-4">
             <div className="text-center">
-              <h2 className="text-xl font-bold text-emerald-300">{isEn ? 'Toolbar Popup Preview' : 'এক্সটেনশন টুলবার পপআপ প্রিভিউ'}</h2>
-              <p className="text-xs text-emerald-400/80 mt-1">
-                {isEn
-                  ? 'Clicking the icon in your Chrome toolbar launches this fast popup (Never overrides Chrome New Tab).'
-                  : 'ক্রোম টুলবারে আইকনে ক্লিক করলে এই দ্রুত উইন্ডোটি খোলে (New Tab কোনোভাবেই বিঘ্নিত হয় না)।'}
+              <h2 className="text-lg font-bold text-emerald-300">{isEn ? 'Toolbar Popup Preview' : 'এক্সটেনশন টুলবার পপআপ প্রিভিউ'}</h2>
+              <p className="text-[11px] text-emerald-400/80 mt-1">
+                {isEn ? 'A compact 1:1 preview of the Chrome toolbar popup.' : 'Chrome toolbar-এর compact popup-এর সঙ্গে মিল রেখে তৈরি preview।'}
               </p>
             </div>
-
-            <div className="bg-[#022c22] border-2 border-emerald-500/40 rounded-2xl p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-                <div className="flex items-center gap-2">
-                  <img src="./assets/aistudio/praying_99ed162a.png" alt="Prayer Focus" className="w-6 h-6 object-contain drop-shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-                  <div>
-                    <h3 className="font-extrabold text-sm text-emerald-400">{t.appName}</h3>
-                    <span className="text-[10px] text-emerald-300">{t.tagline}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 text-[11px] text-emerald-300">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                  {isEn ? 'Active' : 'সক্রিয়'}
-                </div>
-              </div>
-
-              {/* Present Prayer Card in Popup Preview */}
-              {nextPrayerInfo?.current && (
-                <div className="bg-emerald-500/20 border border-emerald-400/40 rounded-xl px-3 py-2 flex items-center justify-between text-xs text-emerald-200">
-                  <div className="flex items-center gap-1.5 font-bold text-white">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>{isEn ? 'Present Window:' : 'বর্তমান ওয়াক্ত:'} {isEn ? nextPrayerInfo.current.nameEn : nextPrayerInfo.current.name}</span>
-                  </div>
-                  <span className="text-[11px] text-emerald-300 font-mono">
-                    {isEn ? nextPrayerInfo.current.windowEn : toBengaliNumerals(nextPrayerInfo.current.windowBn)}
-                  </span>
-                </div>
-              )}
-
-              {/* Next Prayer Card */}
-              {nextPrayerInfo && (
-                <div className="bg-emerald-900/40 border border-emerald-500/30 rounded-xl p-4 text-center">
-                  <div className="flex justify-between text-xs text-emerald-300 mb-1">
-                    <span>{t.nextPrayer}</span>
-                    <span>{formatDisplayTime(nextPrayerInfo.next?.time, settings.timeFormat || '12h')}</span>
-                  </div>
-                  <div className="text-2xl font-black text-white">
-                    {isEn ? nextPrayerInfo.next?.nameEn : nextPrayerInfo.next?.name}
-                  </div>
-                  <div className="text-[11px] text-emerald-300 mt-1 font-semibold">
-                    {t.timeLimit}: {isEn ? nextPrayerInfo.next?.limitEn : nextPrayerInfo.next?.limitBn}
-                  </div>
-                  <div className="bg-black/30 inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-mono text-emerald-300 mt-2 border border-emerald-500/20">
-                    <span>{t.countdownTitle}:</span>
-                    <span className="font-bold">{formatNum(formatMs(nextPrayerInfo.timeRemainingMs))}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* 5 Prayers Grid */}
-              <div className="grid grid-cols-5 gap-1.5 text-center">
-                {PRAYER_LIST.map((key) => {
-                  const rawTime = schedule?.timings ? schedule.timings[key] : '--:--';
-                  const offset = settings.timingOffsets?.[key] || 0;
-                  const adjustedTime = rawTime !== '--:--' ? applyTimeOffset(rawTime, offset) : '--:--';
-                  const displayFormatted = adjustedTime !== '--:--' ? formatDisplayTime(adjustedTime, settings.timeFormat || '12h') : '--:--';
-                  const isCurrent = nextPrayerInfo?.current?.key === key;
-                  const pName = (PRAYER_NAMES as any)[key];
-                  const windows = getPrayerWindows(schedule, settings.timingOffsets || {}, settings.timeFormat || '12h');
-                  const win = (windows as any)[key] || {};
-                  return (
-                    <div
-                      key={key}
-                      className={`p-1.5 rounded-lg border ${
-                        isCurrent
-                          ? 'bg-emerald-500/20 border-emerald-400'
-                          : 'bg-white/5 border-white/5'
-                      }`}
-                    >
-                      <div className="text-[11px] font-bold text-emerald-200">{isEn ? pName?.en : pName?.bn}</div>
-                      <div className="text-[10px] font-mono text-emerald-400 mt-0.5">{displayFormatted}</div>
-                      <div className="text-[8.5px] text-emerald-300/80 mt-0.5 truncate" title={isEn ? win.limitEn : win.limitBn}>
-                        {isEn ? `Until ${win.end}` : `${win.end} পর্যন্ত`}
-                      </div>
+            <div className="mx-auto w-full max-w-[360px] overflow-hidden rounded-[20px] border border-emerald-400/40 shadow-[0_18px_48px_rgba(0,0,0,0.5)]">
+              <div className="flex flex-col gap-3 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.15),transparent_70%),#022c22] p-[18px] text-emerald-50">
+                <header className="flex items-center justify-between border-b border-emerald-400/15 pb-[10px]">
+                  <div className="flex items-center gap-2">
+                    <img src="./assets/aistudio/praying_99ed162a.png" alt="Prayer Focus" className="h-[26px] w-[26px] object-contain drop-shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
+                    <div>
+                      <h3 className="text-[16px] font-bold text-emerald-400">{t.appName}</h3>
+                      <span className="text-[11px] text-emerald-200">{t.tagline}</span>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  {isEn ? 'Open Dashboard' : 'ড্যাশবোর্ড খুলুন'}
-                </button>
-                <button
-                  onClick={() => setShowSettingsModal(true)}
-                  className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/10"
-                >
-                  <Settings className="w-3.5 h-3.5 text-emerald-400" />
-                  {t.settingsTitle}
-                </button>
-              </div>
-
-              <div className="text-center text-[10px] text-emerald-400/60 pt-1">
-                {settings.cityName} • Asia/Dhaka
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-lg border border-emerald-400/30 bg-black/40 p-0.5">
+                      <button onClick={() => setLang('en')} className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${isEn ? 'bg-emerald-500 text-emerald-950' : 'text-emerald-200'}`}>EN</button>
+                      <button onClick={() => setLang('bn')} className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${!isEn ? 'bg-emerald-500 text-emerald-950' : 'text-emerald-200'}`}>বাংলা</button>
+                    </div>
+                    <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2 py-1">
+                      <span className={`h-2 w-2 rounded-full ${settings.notificationsEnabled ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                      <span className="text-[11px] font-semibold text-emerald-200">{settings.notificationsEnabled ? (isEn ? 'Active' : 'সক্রিয়') : (isEn ? 'Off' : 'বন্ধ')}</span>
+                    </div>
+                  </div>
+                </header>
+                <section className="rounded-[16px] border border-emerald-400/25 bg-gradient-to-br from-emerald-900/80 to-emerald-800/40 p-4 text-center shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+                  <div className="mb-1 flex justify-between text-xs text-emerald-200">
+                    <span>{t.nextPrayer}</span>
+                    <span>{nextPrayerInfo?.next ? formatDisplayTime(nextPrayerInfo.next.time, settings.timeFormat || '12h') : '--:--'}</span>
+                  </div>
+                  <div className="mb-2 text-[26px] font-bold leading-tight text-white">
+                    {nextPrayerInfo?.next ? `${isEn ? nextPrayerInfo.next.nameEn : nextPrayerInfo.next.name} (${nextPrayerInfo.next.arabicName})` : (isEn ? 'Prayer' : 'সালাত')}
+                  </div>
+                  <div className="mb-2 text-[11px] font-medium text-emerald-200">
+                    {nextPrayerInfo?.next
+                      ? `${isEn ? 'Time Window' : 'ওয়াক্তের সময়'}: ${isEn ? nextPrayerInfo.next.windowEn : toBengaliNumerals(nextPrayerInfo.next.windowBn)} (${isEn ? nextPrayerInfo.next.limitEn : nextPrayerInfo.next.limitBn})`
+                      : (isEn ? 'Prayer times loading…' : 'ওয়াক্তের সময় লোড হচ্ছে…')}
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-lg bg-[#002f25]/80 px-3 py-2">
+                    <span className="text-xs text-emerald-200">{isEn ? 'Time Left:' : 'সময় বাকি:'}</span>
+                    <span className="font-mono text-base font-bold tabular-nums text-emerald-400">{nextPrayerInfo ? formatNum(formatMs(nextPrayerInfo.timeRemainingMs)) : '--:--:--'}</span>
+                  </div>
+                </section>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {PRAYER_LIST.map((key) => {
+                    const rawTime = schedule?.timings?.[key] || '--:--';
+                    const offset = settings.timingOffsets?.[key] || 0;
+                    const adjustedTime = rawTime !== '--:--' ? applyTimeOffset(rawTime, offset) : '--:--';
+                    const displayTime = adjustedTime !== '--:--' ? formatDisplayTime(adjustedTime, settings.timeFormat || '12h') : '--:--';
+                    const prayerName = (PRAYER_NAMES as any)[key];
+                    const prayerWindows = getPrayerWindows(schedule, settings.timingOffsets || {}, settings.timeFormat || '12h');
+                    const endTime = (prayerWindows as any)[key]?.end || '--';
+                    const isCurrent = nextPrayerInfo?.current?.key === key;
+                    return (
+                      <div key={key} className={`flex min-w-0 flex-col items-center gap-1 rounded-[10px] border px-1 py-2 text-center ${isCurrent ? 'border-emerald-400 bg-emerald-500/25' : 'border-white/10 bg-white/5'}`}>
+                        <span className="text-[12px] font-semibold text-emerald-100">{isEn ? prayerName?.en : prayerName?.bn}</span>
+                        <span className="text-[11px] font-medium tabular-nums text-blue-200">{displayTime}</span>
+                        <span className="text-[8.5px] leading-none text-emerald-200/80">{isEn ? `Limit: ${endTime}` : `সীমা: ${toBengaliNumerals(endTime)}`}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-1 grid grid-cols-2 gap-2.5">
+                  <button onClick={() => setActiveTab('dashboard')} className="flex items-center justify-center gap-1.5 rounded-[10px] bg-emerald-500 px-2 py-2.5 text-[13px] font-bold text-white transition hover:bg-emerald-600">
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    {isEn ? 'Open Dashboard' : 'ড্যাশবোর্ড খুলুন'}
+                  </button>
+                  <button onClick={() => setShowSettingsModal(true)} className="flex items-center justify-center gap-1.5 rounded-[10px] border border-white/15 bg-white/10 px-2 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white/15">
+                    <Settings className="h-3.5 w-3.5 text-emerald-300" />
+                    {t.settingsTitle}
+                  </button>
+                </div>
+                <footer className="mt-1 text-center text-[11px] text-emerald-300/80">{settings.cityName} ({settings.timezone || 'Asia/Dhaka'})</footer>
               </div>
             </div>
           </div>
@@ -1303,6 +1284,25 @@ export default function App() {
                     {isEn ? 'Enable automatic prayer overlay popup & desktop notifications' : 'ওয়াক্ত শুরু হলে স্বয়ংক্রিয় রিমাইন্ডার পপআপ ও নোটিফিকেশন চালু রাখুন'}
                   </label>
                 </div>
+                <div className="flex items-start gap-2 rounded-xl bg-emerald-950/40 border border-emerald-500/20 p-3">
+                  <input
+                    type="checkbox"
+                    id="chk-strict-salah"
+                    checked={settings.strictSalahMode !== false}
+                    onChange={(e) => setSettings({ ...settings, strictSalahMode: e.target.checked })}
+                    className="w-4 h-4 mt-0.5 rounded text-emerald-500"
+                  />
+                  <div>
+                    <label htmlFor="chk-strict-salah" className="text-xs font-semibold text-emerald-100 cursor-pointer">
+                      {isEn ? 'Strict Salah Mode' : 'কঠোর সালাত মোড'}
+                    </label>
+                    <p className="text-[10px] text-emerald-300/75 mt-1 leading-relaxed">
+                      {isEn
+                        ? 'Repeat reminders every 10 minutes until you record the prayer. Any unmarked prayer is automatically marked missed at its calculated end limit.'
+                        : 'সালাত রেকর্ড না করা পর্যন্ত প্রতি ১০ মিনিটে রিমাইন্ডার আসবে। নির্ধারিত শেষ সময়ে রেকর্ড না করা সালাত স্বয়ংক্রিয়ভাবে ছুটে গেছে হিসেবে চিহ্নিত হবে।'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Version & GitHub Updates */}
@@ -1325,9 +1325,13 @@ export default function App() {
                     onClick={async () => {
                       setCheckingUpdate(true);
                       setUpdateResult(null);
-                      const res = await checkGitHubUpdate();
-                      setCheckingUpdate(false);
-                      setUpdateResult(res);
+                      try {
+                        setUpdateResult(await checkGitHubUpdate());
+                      } catch (error: any) {
+                        setUpdateResult({ error: true, message: error?.message || 'Update check failed.' });
+                      } finally {
+                        setCheckingUpdate(false);
+                      }
                     }}
                     className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex items-center gap-1.5 transition disabled:opacity-50"
                   >
@@ -1349,35 +1353,16 @@ export default function App() {
                     ) : updateResult.hasUpdate ? (
                       <div className="space-y-2">
                         <div className="font-bold">🚀 {isEn ? `New Update Available: v${updateResult.latestVersion}` : `নতুন আপডেট উপলব্ধ: v${updateResult.latestVersion}`}</div>
-                        <div className="text-[11px] opacity-80">{isEn ? `Installed: v${updateResult.currentVersion}` : `সংস্থাপিত: v${updateResult.currentVersion}`}</div>
-                        <div className="flex items-center gap-2 flex-wrap pt-1">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const res = await applyAutoUpdate(updateResult.latestVersion);
-                              setInstalledVersionState(res.updatedVersion);
-                              setUpdateResult({
-                                ...updateResult,
-                                hasUpdate: false,
-                                currentVersion: res.updatedVersion,
-                                message: isEn ? `Successfully updated to v${res.updatedVersion}!` : `সফলভাবে v${res.updatedVersion} সংস্করণে আপডেট সম্পন্ন হয়েছে!`
-                              });
-                              showToast(isEn ? `Updated to v${res.updatedVersion}!` : `v${res.updatedVersion} এ সংস্থাপিত হয়েছে!`);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs shadow-md transition cursor-pointer"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-950" />
-                            <span>{isEn ? `Auto-Update to v${updateResult.latestVersion}` : `স্বয়ংক্রিয় আপডেট (v${updateResult.latestVersion})`}</span>
-                          </button>
-                          <a
-                            href={updateResult.downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-emerald-300 underline hover:text-white"
-                          >
-                            {isEn ? 'Download ZIP (Optional)' : 'জিপ ডাউনলোড (ঐচ্ছিক)'}
-                          </a>
-                        </div>
+                        <div className="text-[11px] opacity-80">{isEn ? `Running version: v${updateResult.currentVersion}` : `বর্তমান সংস্করণ: v${toBengaliNumerals(updateResult.currentVersion)}`}</div>
+                        <a href={updateResult.downloadUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs shadow-md transition">
+                          <Download className="w-3.5 h-3.5" />
+                          <span>{isEn ? 'Download Latest Extension ZIP' : 'সর্বশেষ এক্সটেনশন ZIP ডাউনলোড'}</span>
+                        </a>
+                        <p className="text-[10px] text-emerald-200/75 leading-relaxed">
+                          {isEn
+                            ? 'For an unpacked install, extract the ZIP over your existing extension folder and click Reload at chrome://extensions. Your saved prayer history and settings stay in Chrome storage.'
+                            : 'Unpacked install হলে ZIP extract করে পুরোনো extension folder replace করুন, তারপর chrome://extensions থেকে Reload চাপুন। আপনার prayer history ও settings Chrome storage-এ থাকবে।'}
+                        </p>
                       </div>
                     ) : (
                       <div>✅ {isEn ? `You are using the latest version (v${updateResult.currentVersion}).` : `আপনি সর্বাধুনিক সংস্করণ ব্যবহার করছেন (v${updateResult.currentVersion})।`}</div>
