@@ -71,27 +71,74 @@ if (typeof chrome !== 'undefined') {
           settings
         });
       } else if (request.action === 'ACTION_MARK_PRAYED') {
-        // User clicked "✓ Namaz Finished" / "✓ নামাজ আদায় করেছি"
-        const session = await finishPrayerSession();
-        if (session && session.prayerKey) {
-          const todayStr = getDhakaDateString();
-          await recordPrayerStatus(todayStr, session.prayerKey, 'prayed');
-        } else if (request.prayerKey) {
-          const todayStr = getDhakaDateString();
-          await recordPrayerStatus(todayStr, request.prayerKey, 'prayed');
+        // Acknowledging a reminder records the exact prayer/date and permanently
+        // dismisses this prayer's overlay for the current prayer window.
+        const activeSession = await getActiveSession();
+        const prayerKey = request.prayerKey || activeSession?.prayerKey;
+        if (!prayerKey) {
+          sendResponse({ success: false, error: 'No prayer selected.' });
+          return;
+        }
+        const dateStr = activeSession?.prayerKey === prayerKey
+          ? activeSession.date
+          : getDhakaDateString();
+        await recordPrayerStatus(dateStr, prayerKey, 'prayed');
+
+        const session = await getActiveSession();
+        if (session?.prayerKey === prayerKey && session?.date === dateStr) {
+          await setActiveSession({
+            ...session,
+            state: 'prayed',
+            completedAt: Date.now(),
+            snoozeUntil: null,
+            focusStart: null,
+            focusEnd: null
+          });
         }
         if (typeof chrome !== 'undefined' && chrome.alarms) {
           chrome.alarms.clear('snoozeAlarm', () => {});
         }
         notifyOpenTabsToShowOverlay();
-        sendResponse({ success: true, session });
+        sendResponse({ success: true, prayerKey, date: dateStr });
       } else if (request.action === 'ACTION_PRAY') {
-        // User clicked "আমি নামাজে যাচ্ছি"
+        // When automatic prayer reminders are enabled, clicking the prayer
+        // action means the user has acknowledged this prayer: record it as
+        // prayed and suppress every further modal for this prayer. When the
+        // setting is off, preserve the original timed focus-session behavior.
         const settings = await getSettings();
-        const duration = settings.focusDurationMinutes || 8;
-        const session = await startFocusSession(duration);
-        notifyOpenTabsToShowOverlay();
-        sendResponse({ success: true, session });
+        if (settings.notificationsEnabled) {
+          const activeSession = await getActiveSession();
+          const prayerKey = request.prayerKey || activeSession?.prayerKey;
+          if (!prayerKey) {
+            sendResponse({ success: false, error: 'No prayer selected.' });
+            return;
+          }
+          const dateStr = activeSession?.prayerKey === prayerKey
+            ? activeSession.date
+            : getDhakaDateString();
+          await recordPrayerStatus(dateStr, prayerKey, 'prayed');
+          const session = await getActiveSession();
+          if (session?.prayerKey === prayerKey && session?.date === dateStr) {
+            await setActiveSession({
+              ...session,
+              state: 'prayed',
+              completedAt: Date.now(),
+              snoozeUntil: null,
+              focusStart: null,
+              focusEnd: null
+            });
+          }
+          if (typeof chrome !== 'undefined' && chrome.alarms) {
+            chrome.alarms.clear('snoozeAlarm', () => {});
+          }
+          notifyOpenTabsToShowOverlay();
+          sendResponse({ success: true, prayerKey, date: dateStr, markedPrayed: true });
+        } else {
+          const duration = settings.focusDurationMinutes || 8;
+          const session = await startFocusSession(duration);
+          notifyOpenTabsToShowOverlay();
+          sendResponse({ success: true, session, markedPrayed: false });
+        }
       } else if (request.action === 'ACTION_SNOOZE') {
         // User clicked "৫ মিনিট পরে মনে করিয়ে দিন"
         const settings = await getSettings();
