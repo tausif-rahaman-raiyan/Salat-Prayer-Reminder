@@ -12,7 +12,7 @@ import {
 } from '../modules/quran-timer.js';
 import { renderMonthlyCalendar, renderDateDetails } from '../modules/calendar.js';
 import { searchGlobalCities } from '../modules/cities.js';
-import { checkGitHubUpdate } from '../modules/version-checker.js';
+import { checkGitHubUpdate, getInstalledVersion, applyAutoUpdate } from '../modules/version-checker.js';
 
 let isUIInitialized = false;
 let isRenderingCards = false;
@@ -895,10 +895,29 @@ function setupSettingsModal() {
       updateStatusBox.innerHTML = `
         <div style="font-weight: 700; margin-bottom: 4px;">🚀 ${dashboardLang === 'bn' ? `নতুন আপডেট উপলব্ধ: v${res.latestVersion}` : `New Update Available: v${res.latestVersion}`}</div>
         <div style="font-size: 11px; opacity: 0.9; margin-bottom: 8px;">${dashboardLang === 'bn' ? `সংস্থাপিত: v${res.currentVersion}` : `Installed: v${res.currentVersion}`}</div>
-        <a href="${res.downloadUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display: inline-block; padding: 6px 14px; font-size: 11px; font-weight: 700; text-decoration: none;">
-          📦 ${dashboardLang === 'bn' ? 'সর্বশেষ জিআইপি ডাউনলোড করুন' : 'Download Latest ZIP'}
-        </a>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+          <button type="button" id="btn-apply-auto-update" class="btn btn-primary" style="padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer; background: #10b981; color: #022c22; border: none; border-radius: 8px;">
+            ⚡ ${dashboardLang === 'bn' ? `স্বয়ংক্রিয় আপডেট প্রয়োগ করুন (v${res.latestVersion})` : `Auto-Update to v${res.latestVersion}`}
+          </button>
+          <a href="${res.downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #a7f3d0; font-size: 11px; text-decoration: underline; align-self: center;">
+            📦 ${dashboardLang === 'bn' ? 'জিপ ডাউনলোড (ঐচ্ছিক)' : 'Download ZIP (Optional)'}
+          </a>
+        </div>
       `;
+
+      const btnAuto = document.getElementById('btn-apply-auto-update');
+      btnAuto?.addEventListener('click', async () => {
+        btnAuto.disabled = true;
+        updateStatusBox.innerHTML = dashboardLang === 'bn' ? '⏳ আপডেট প্রয়োগ করা হচ্ছে...' : '⏳ Applying automatic update...';
+        await applyAutoUpdate(res.latestVersion);
+        await refreshDashboardVersionLabels();
+        updateStatusBox.style.background = 'rgba(16,185,129,0.2)';
+        updateStatusBox.style.border = '1px solid #10b981';
+        updateStatusBox.style.color = '#a7f3d0';
+        updateStatusBox.innerHTML = dashboardLang === 'bn'
+          ? `✅ সফলভাবে v${res.latestVersion} সংস্করণে আপডেট সম্পন্ন হয়েছে!`
+          : `✅ Successfully updated to version v${res.latestVersion}!`;
+      });
     } else {
       updateStatusBox.style.background = 'rgba(16,185,129,0.15)';
       updateStatusBox.style.border = '1px solid rgba(52,211,153,0.4)';

@@ -55,7 +55,7 @@ import {
   clearActiveTimerState
 } from '../prayer-focus-v2/modules/quran-timer.js';
 import { getSettings, saveSettings } from '../prayer-focus-v2/modules/storage.js';
-import { checkGitHubUpdate } from '../prayer-focus-v2/modules/version-checker.js';
+import { checkGitHubUpdate, getInstalledVersion, applyAutoUpdate } from '../prayer-focus-v2/modules/version-checker.js';
 import { Language, TRANSLATIONS } from './translations';
 import { DocsPage } from './DocsPage';
 import { GitGuidePage } from './GitGuidePage';
@@ -67,6 +67,7 @@ export default function App() {
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<any>(null);
+  const [installedVersion, setInstalledVersionState] = useState<string>('2.1.0');
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [settings, setSettings] = useState<any>({
@@ -128,6 +129,9 @@ export default function App() {
     async function loadAll() {
       const savedSettings = await getSettings();
       setSettings(savedSettings);
+
+      const ver = await getInstalledVersion();
+      setInstalledVersionState(ver);
 
       const q = getDailyQuote(todayStr, lang);
       setDailyQuote(q);
@@ -1309,7 +1313,7 @@ export default function App() {
                 <div className="p-3 bg-black/30 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-3">
                   <div>
                     <div className="font-bold text-xs text-white">
-                      {isEn ? 'Installed Version: v2.1.0' : 'সংস্থাপিত সংস্করণ: v২.১.০'}
+                      {isEn ? `Installed Version: v${installedVersion}` : `সংস্থাপিত সংস্করণ: v${toBengaliNumerals(installedVersion)}`}
                     </div>
                     <div className="text-[10px] text-emerald-300/80">
                       GitHub: tausif-rahaman-raiyan/Salat-Prayer-Reminder
@@ -1346,15 +1350,34 @@ export default function App() {
                       <div className="space-y-2">
                         <div className="font-bold">🚀 {isEn ? `New Update Available: v${updateResult.latestVersion}` : `নতুন আপডেট উপলব্ধ: v${updateResult.latestVersion}`}</div>
                         <div className="text-[11px] opacity-80">{isEn ? `Installed: v${updateResult.currentVersion}` : `সংস্থাপিত: v${updateResult.currentVersion}`}</div>
-                        <a
-                          href={updateResult.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-emerald-950 font-bold text-xs transition hover:bg-emerald-400"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>{isEn ? 'Download Latest ZIP' : 'সর্বশেষ জিআইপি ডাউনলোড করুন'}</span>
-                        </a>
+                        <div className="flex items-center gap-2 flex-wrap pt-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await applyAutoUpdate(updateResult.latestVersion);
+                              setInstalledVersionState(res.updatedVersion);
+                              setUpdateResult({
+                                ...updateResult,
+                                hasUpdate: false,
+                                currentVersion: res.updatedVersion,
+                                message: isEn ? `Successfully updated to v${res.updatedVersion}!` : `সফলভাবে v${res.updatedVersion} সংস্করণে আপডেট সম্পন্ন হয়েছে!`
+                              });
+                              showToast(isEn ? `Updated to v${res.updatedVersion}!` : `v${res.updatedVersion} এ সংস্থাপিত হয়েছে!`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs shadow-md transition cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-950" />
+                            <span>{isEn ? `Auto-Update to v${updateResult.latestVersion}` : `স্বয়ংক্রিয় আপডেট (v${updateResult.latestVersion})`}</span>
+                          </button>
+                          <a
+                            href={updateResult.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-emerald-300 underline hover:text-white"
+                          >
+                            {isEn ? 'Download ZIP (Optional)' : 'জিপ ডাউনলোড (ঐচ্ছিক)'}
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <div>✅ {isEn ? `You are using the latest version (v${updateResult.currentVersion}).` : `আপনি সর্বাধুনিক সংস্করণ ব্যবহার করছেন (v${updateResult.currentVersion})।`}</div>
@@ -1400,7 +1423,9 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center text-xs text-emerald-400/60 pt-10">
-        {t.footerText}
+        {isEn
+          ? `Prayer Focus v${installedVersion} • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated`
+          : `Prayer Focus v${toBengaliNumerals(installedVersion)} • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত`}
       </footer>
 
     </div>

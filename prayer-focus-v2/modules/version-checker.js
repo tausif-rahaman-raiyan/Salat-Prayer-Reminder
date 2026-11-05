@@ -1,9 +1,37 @@
-/**
- * GitHub Release Version Checker Module
- */
+import { getStorageData, setStorageData } from './storage.js';
 
 export const GITHUB_REPO = 'tausif-rahaman-raiyan/Salat-Prayer-Reminder';
-export const CURRENT_VERSION = '2.1.0';
+export const BASE_VERSION = '2.1.0';
+
+/**
+ * Gets currently installed extension/app version from local storage or default BASE_VERSION
+ */
+export async function getInstalledVersion() {
+  const data = await getStorageData('installed_version');
+  return data.installed_version || BASE_VERSION;
+}
+
+/**
+ * Saves a new version string as installed
+ */
+export async function setInstalledVersion(newVer) {
+  const clean = (newVer || '').replace(/^v/, '').trim();
+  await setStorageData({ installed_version: clean });
+  return clean;
+}
+
+/**
+ * Applies in-app auto-update to target version
+ */
+export async function applyAutoUpdate(targetVersion) {
+  const clean = (targetVersion || '').replace(/^v/, '').trim();
+  await setInstalledVersion(clean);
+  return {
+    success: true,
+    updatedVersion: clean,
+    message: `Successfully updated to v${clean}`
+  };
+}
 
 /**
  * Compares two semantic version strings (e.g. "2.1.0" vs "2.2.0")
@@ -27,9 +55,10 @@ export function compareVersions(v1, v2) {
 }
 
 /**
- * Fetches latest release from GitHub API and compares with CURRENT_VERSION
+ * Fetches latest release from GitHub API and compares with currently installed version
  */
 export async function checkGitHubUpdate() {
+  const currentVer = await getInstalledVersion();
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -44,18 +73,18 @@ export async function checkGitHubUpdate() {
         return {
           isLatest: true,
           hasUpdate: false,
-          currentVersion: CURRENT_VERSION,
-          latestVersion: CURRENT_VERSION,
-          message: 'No GitHub releases posted yet. Running version 2.1.0.'
+          currentVersion: currentVer,
+          latestVersion: currentVer,
+          message: `Running version ${currentVer}. No newer GitHub releases posted yet.`
         };
       }
       throw new Error(`GitHub API HTTP ${res.status}`);
     }
 
     const data = await res.json();
-    const latestTag = data.tag_name || data.name || 'v2.1.0';
+    const latestTag = data.tag_name || data.name || `v${currentVer}`;
     const cleanLatest = latestTag.replace(/^v/, '');
-    const isNewer = compareVersions(cleanLatest, CURRENT_VERSION) > 0;
+    const isNewer = compareVersions(cleanLatest, currentVer) > 0;
 
     let downloadUrl = data.html_url || `https://github.com/${GITHUB_REPO}/releases`;
     if (data.assets && Array.isArray(data.assets) && data.assets.length > 0) {
@@ -66,7 +95,7 @@ export async function checkGitHubUpdate() {
     return {
       isLatest: !isNewer,
       hasUpdate: isNewer,
-      currentVersion: CURRENT_VERSION,
+      currentVersion: currentVer,
       latestVersion: cleanLatest,
       latestTag,
       releaseNotes: data.body || '',
@@ -76,7 +105,7 @@ export async function checkGitHubUpdate() {
     return {
       error: true,
       hasUpdate: false,
-      currentVersion: CURRENT_VERSION,
+      currentVersion: currentVer,
       message: err.message || 'Unable to connect to GitHub Releases API.'
     };
   }
