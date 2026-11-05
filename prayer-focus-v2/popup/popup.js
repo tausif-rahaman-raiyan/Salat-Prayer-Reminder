@@ -215,15 +215,6 @@ function startLiveCountdown(schedule, settings = {}) {
         item.classList.remove('active');
       }
     });
-
-    const diff = Math.max(0, next.epoch - Date.now());
-    const totalSec = Math.floor(diff / 1000);
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-
-    const formatted = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    if (countEl) countEl.textContent = currentLang === 'bn' ? toBengaliNumerals(formatted) : formatted;
   };
 
   update();
