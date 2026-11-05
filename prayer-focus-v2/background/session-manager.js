@@ -38,6 +38,7 @@ export async function createPrayerSession(dateStr, prayerKey, prayerEpoch) {
     prayerEpoch,
     state: 'notified',
     notifiedAt: Date.now(),
+    lastReminderAt: Date.now(),
     snoozeUntil: null,
     focusStart: null,
     focusEnd: null
@@ -128,6 +129,9 @@ export function shouldShowReminderOverlay(session) {
   // If already prayed, do NOT show overlay or reminder popup
   if (session.state === 'prayed' || session.state === 'completed') {
     return { show: false, reason: 'prayed' };
+  }
+  if (session.state === 'missed') {
+    return { show: false, reason: 'missed' };
   }
 
   // If focus session is active, show focus blocking screen

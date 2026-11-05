@@ -115,10 +115,13 @@ function computeCrc32(buf) {
 }
 
 const src = path.resolve('prayer-focus-v2');
+const manifest = JSON.parse(fs.readFileSync(path.join(src, 'manifest.json'), 'utf8'));
+const versionedZipName = `prayer-focus-v${manifest.version}.zip`;
+const publicDir = path.resolve('public');
+
+if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+
 createZip(src, path.resolve('prayer-focus.zip'));
-createZip(src, path.resolve('prayer-focus-v2.1.0.zip'));
-if (!fs.existsSync(path.resolve('public'))) {
-  fs.mkdirSync(path.resolve('public'), { recursive: true });
-}
-createZip(src, path.resolve('public/prayer-focus.zip'));
-createZip(src, path.resolve('public/prayer-focus-v2.1.0.zip'));
+createZip(src, path.resolve(versionedZipName));
+createZip(src, path.join(publicDir, 'prayer-focus.zip'));
+createZip(src, path.join(publicDir, versionedZipName));

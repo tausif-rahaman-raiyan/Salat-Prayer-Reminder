@@ -1,5 +1,5 @@
-import { setupAlarms, PRAYER_CHECK_ALARM, checkPrayerSchedule, notifyOpenTabsToShowOverlay } from './scheduler.js';
-import { getActiveSession, startFocusSession, snoozeSession, finishPrayerSession, shouldShowReminderOverlay } from './session-manager.js';
+import { setupAlarms, PRAYER_CHECK_ALARM, PRAYER_END_ALARM_PREFIX, checkPrayerSchedule, notifyOpenTabsToShowOverlay } from './scheduler.js';
+import { getActiveSession, setActiveSession, startFocusSession, snoozeSession, finishPrayerSession, shouldShowReminderOverlay } from './session-manager.js';
 import { fetchPrayerTimings } from '../modules/prayer-api.js';
 import { getDailyQuote } from '../modules/quotes.js';
 import { getDhakaDateString } from '../modules/timezone.js';
@@ -11,14 +11,14 @@ if (typeof chrome !== 'undefined') {
   // Install & Startup Lifecycle
   chrome.runtime.onInstalled.addListener(async (details) => {
     console.log('[Prayer Focus] Extension Installed / Updated:', details.reason);
-    setupAlarms();
+    await setupAlarms();
     await fetchPrayerTimings(true);
     await checkPrayerSchedule(false);
   });
 
   chrome.runtime.onStartup.addListener(async () => {
     console.log('[Prayer Focus] Browser started up.');
-    setupAlarms();
+    await setupAlarms();
     await checkPrayerSchedule(false);
   });
 
@@ -27,9 +27,31 @@ if (typeof chrome !== 'undefined') {
     chrome.alarms.onAlarm.addListener(async (alarm) => {
       if (alarm.name === PRAYER_CHECK_ALARM) {
         await checkPrayerSchedule(true);
+      } else if (alarm.name.startsWith(PRAYER_END_ALARM_PREFIX)) {
+        const [, dateStr, prayerKey] = alarm.name.split(':');
+        const schedule = await fetchPrayerTimings();
+        const record = await getPrayerRecordForDate(dateStr, schedule);
+        const session = await getActiveSession();
+
+        if (record[prayerKey] === 'missed' && session?.date === dateStr && session?.prayerKey === prayerKey) {
+          await setActiveSession({
+            ...session, state: 'missed', completedAt: Date.now(),
+            snoozeUntil: null, focusStart: null, focusEnd: null
+          });
+        }
+        notifyOpenTabsToShowOverlay();
+        await checkPrayerSchedule(false);
       }
     });
   }
+
+  // Dismiss open overlays as soon as the dashboard records prayed/missed.
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    const session = changes.active_prayer_session?.newValue;
+    if (areaName === 'local' && session && ['prayed', 'missed'].includes(session.state)) {
+      notifyOpenTabsToShowOverlay();
+    }
+  });
 
   // Communication with content scripts, popup, and dashboard
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

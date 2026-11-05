@@ -1,10 +1,10 @@
-# 🕌 Prayer Focus – Pray • Focus • Grow (v2.1.0)
+# 🕌 Prayer Focus – Pray • Focus • Grow (v2.2.0)
 
 > **A production-ready Islamic productivity Chrome extension & companion web dashboard designed to protect your 5 daily prayers, maintain focus, and foster a consistent Quran habit without disrupting your original Chrome New Tab.**
 
 [![Build Website & Extension Package](https://github.com/tausif-rahaman-raiyan/Salat-Prayer-Reminder/actions/workflows/build-and-package.yml/badge.svg)](https://github.com/tausif-rahaman-raiyan/Salat-Prayer-Reminder/actions/workflows/build-and-package.yml)
 [![Manifest V3](https://img.shields.io/badge/Chrome-Manifest_V3-10b981.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-2.1.0-047857.svg)](https://github.com/tausif-rahaman-raiyan/Salat-Prayer-Reminder)
+[![Version](https://img.shields.io/badge/Version-2.2.0-047857.svg)](https://github.com/tausif-rahaman-raiyan/Salat-Prayer-Reminder)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---
@@ -88,7 +88,7 @@ When an active prayer window starts:
 
 ### Extension Installation (Developer Mode)
 
-1. **Get the files**: Clone this repository or download `prayer-focus-v2.1.0.zip`.
+1. **Get the files**: Clone this repository or download `prayer-focus-v2.2.0.zip`.
 2. **Open Extensions**: In Google Chrome, go to `chrome://extensions/`.
 3. **Turn on Developer Mode**: Toggle the switch at top-right.
 4. **Load Unpacked**:
@@ -110,7 +110,7 @@ git init
 git add .
 
 # 3. Create your initial commit
-git commit -m "feat: release Prayer Focus v2.1.0 Chrome Extension & full web documentation"
+git commit -m "feat: release Prayer Focus v2.2.0 Chrome Extension & full web documentation"
 
 # 4. Set branch to main
 git branch -M main
