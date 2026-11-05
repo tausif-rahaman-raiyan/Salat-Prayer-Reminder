@@ -1,0 +1,8 @@
+{
+  "name": "Salat-Prayer-Reminder-Focus-Mode",
+  "description": "Imported from GitHub: tausif-rahaman-raiyan/Salat-Prayer-Reminder",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
