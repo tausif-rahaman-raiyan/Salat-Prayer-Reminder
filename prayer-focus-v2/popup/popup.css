@@ -27,3 +27,22 @@ body{font-size:13px;user-select:none}button{font:inherit}
 .popup-footer{display:flex;align-items:center;justify-content:center;gap:8px;color:#7fcab1;font-size:10px;text-align:center}.footer-rule{height:1px;flex:1;background:#2cc99738}.location-pin{color:#39dba5;font-size:9px}
 @media(max-height:620px){.popup-container{gap:10px;padding:14px;min-height:0}.current-prayer-card{min-height:225px}.hero-content{min-height:170px}.grid-item{min-height:76px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+
+/* v2.2.14: balanced popup typography and a no-scroll compact viewport */
+html,body{width:430px;height:550px;min-height:550px;max-height:550px;overflow:hidden!important}
+.popup-container{width:430px;height:550px;min-height:550px;max-height:550px;gap:9px;padding:13px 16px 12px;overflow:hidden}
+.popup-header{gap:8px;padding-bottom:10px}
+.brand{gap:9px}.brand-mark{width:40px;height:40px;flex-basis:40px;border-radius:13px}.brand-mark img{width:30px;height:30px}
+.brand-text h1{font-size:18px;letter-spacing:-.45px}.brand-tag{font-size:8px;letter-spacing:1.65px;margin-top:4px}
+.header-controls{gap:6px}.lang-switch-box button{padding:6px 8px;font-size:10px}.status-indicator{padding:6px 9px;gap:5px}.status-text{font-size:9px}
+.next-prayer-strip{min-height:45px;padding:8px 12px;gap:8px}.mosque-mark{font-size:19px}.strip-label{font-size:12px}.strip-name{font-size:13px}.strip-time{font-size:12px}.strip-time span:first-child{font-size:18px}
+.current-prayer-card{min-height:204px;border-radius:20px}.current-card-head{padding:11px 14px}.current-label{font-size:13px}.current-range{font-size:10px}
+.hero-art{inset:44px 0 0}.hero-content{min-height:155px;padding:17px 12px 12px}.hero-content h2{font-size:30px;letter-spacing:-.8px}
+.current-window-line{margin-top:10px;font-size:12px}.current-limit-line{margin-top:4px;font-size:11px}
+.countdown-wrapper{gap:8px;margin-top:12px;padding:8px 13px;border-radius:14px}.hourglass{font-size:19px}.countdown-label{font-size:12px}.countdown-digits{font-size:22px}
+.countdown-caption{margin-top:9px;font-size:8px;letter-spacing:2.5px}
+.schedule-section{gap:7px}.schedule-heading{font-size:11px;letter-spacing:1.45px}.schedule-heading b{font-size:15px}.schedule-hint{font-size:9px;letter-spacing:1.2px}
+.prayer-grid{gap:6px}.grid-item{min-height:78px;padding:6px 2px;gap:4px;border-radius:13px}.prayer-symbol{font-size:17px}.p-name{font-size:10px}.p-time{font-size:10px}.p-limit{font-size:7.5px}
+.actions-row{gap:9px}.btn{min-height:40px;padding:8px;font-size:11px;border-radius:12px}.btn-icon{font-size:15px}
+.popup-footer{font-size:9px;gap:7px}
+@media(max-height:550px){html,body,.popup-container{height:100vh;min-height:0;max-height:100vh}.popup-container{gap:7px;padding:10px 14px}.current-prayer-card{min-height:185px}.hero-content{min-height:137px}.grid-item{min-height:70px}.popup-header{padding-bottom:8px}}
