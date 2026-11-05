@@ -11,69 +11,51 @@
   <main class="popup-container" aria-label="Prayer Focus quick panel">
     <header class="popup-header">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><img src="../assets/icons/icon32.png" alt=""></span>
-        <div class="brand-text">
-          <h1>Prayer Focus</h1>
-          <span class="brand-tag">PRAY <i>•</i> FOCUS <i>•</i> GROW</span>
-        </div>
+        <span class="brand-mark" aria-hidden="true"><img src="../assets/icons/icon48.png" alt=""></span>
+        <div class="brand-text"><h1>Prayer <span>Focus</span></h1><span class="brand-tag">PRAY <i>•</i> FOCUS <i>•</i> GROW</span></div>
       </div>
       <div class="header-controls">
         <div class="lang-switch-box" role="group" aria-label="Language">
           <button id="btn-popup-en" type="button" aria-pressed="true">EN</button>
           <button id="btn-popup-bn" type="button" aria-pressed="false">বাংলা</button>
         </div>
-        <div class="status-indicator" id="reminder-status-badge" data-active="true" role="status">
-          <span class="dot" aria-hidden="true"></span>
-          <span class="status-text" id="status-label">Active</span>
-        </div>
+        <div class="status-indicator" id="reminder-status-badge" data-active="true" role="status"><span class="dot" aria-hidden="true"></span><span class="status-text" id="status-label">Active</span></div>
       </div>
     </header>
-
-    <section id="present-prayer-banner" class="present-prayer-banner" aria-live="polite" style="display:none">
-      <div class="present-copy">
-        <span class="live-dot" aria-hidden="true"></span>
-        <strong id="present-prayer-title">Present Window</strong>
-      </div>
-      <span id="present-prayer-time-range" class="present-time">--</span>
+    <section class="next-prayer-strip" aria-live="polite">
+      <span class="mosque-mark" aria-hidden="true">☪</span><span class="strip-label" id="label-next-prayer">Next Prayer</span>
+      <strong class="strip-name" id="next-prayer-name">Prayer</strong>
+      <span class="strip-time"><span aria-hidden="true">◷</span><span id="next-prayer-time">--:--</span></span><span class="strip-chevron" aria-hidden="true">›</span>
     </section>
-
-    <section class="next-prayer-card" aria-live="polite">
-      <div class="card-top">
-        <span class="eyebrow" id="label-next-prayer">NEXT PRAYER</span>
-        <span class="time-label" id="next-prayer-time">--:--</span>
+    <section class="current-prayer-card" aria-live="polite">
+      <div class="current-card-head">
+        <div class="current-label"><span class="live-dot" aria-hidden="true"></span><strong id="present-prayer-title">Present Window</strong></div>
+        <span class="current-range" id="present-prayer-time-range">--:-- – --:--</span>
       </div>
-      <h2 class="prayer-name-display" id="next-prayer-name">Prayer</h2>
-      <div id="next-prayer-limit" class="next-prayer-limit">Time window: --</div>
-      <div class="countdown-wrapper">
-        <span class="countdown-label" id="label-time-left">Time left</span>
-        <span class="countdown-digits" id="countdown-text">--:--:--</span>
+      <div class="hero-art" aria-hidden="true"><div class="moon"></div><div class="mosque-silhouette"><i></i><i></i><i></i></div></div>
+      <div class="hero-content">
+        <h2 id="current-prayer-name">Prayer</h2>
+        <div class="current-window-line" id="current-prayer-window">Time Window: --</div>
+        <div class="current-limit-line" id="current-prayer-limit">Until --</div>
+        <div class="countdown-wrapper"><span class="hourglass" aria-hidden="true">⌛</span><span class="countdown-label" id="label-time-left">Time Left:</span><strong class="countdown-digits" id="countdown-text">--:--:--</strong></div>
+        <div class="countdown-caption"><span></span><b>UNTIL THE NEXT ADHAN</b><span></span></div>
       </div>
-      <div class="countdown-caption">UNTIL THE NEXT ADHAN</div>
     </section>
-
     <section class="schedule-section" aria-label="Today's prayer schedule">
-      <div class="schedule-heading">
-        <span>DAILY SCHEDULE</span>
-        <span class="schedule-hint">5 DAILY PRAYERS</span>
-      </div>
+      <div class="schedule-heading"><span><b aria-hidden="true">▦</b> DAILY SCHEDULE</span><span class="schedule-hint">5 DAILY PRAYERS</span></div>
       <div class="prayer-grid" id="prayer-grid">
-        <div class="grid-item" data-key="fajr"><span class="p-name" id="name-fajr">Fajr</span><span class="p-time" id="time-fajr">--:--</span><span class="p-limit" id="limit-fajr">Until --</span></div>
-        <div class="grid-item" data-key="dhuhr"><span class="p-name" id="name-dhuhr">Dhuhr</span><span class="p-time" id="time-dhuhr">--:--</span><span class="p-limit" id="limit-dhuhr">Until --</span></div>
-        <div class="grid-item" data-key="asr"><span class="p-name" id="name-asr">Asr</span><span class="p-time" id="time-asr">--:--</span><span class="p-limit" id="limit-asr">Until --</span></div>
-        <div class="grid-item" data-key="maghrib"><span class="p-name" id="name-maghrib">Maghrib</span><span class="p-time" id="time-maghrib">--:--</span><span class="p-limit" id="limit-maghrib">Until --</span></div>
-        <div class="grid-item" data-key="isha"><span class="p-name" id="name-isha">Isha</span><span class="p-time" id="time-isha">--:--</span><span class="p-limit" id="limit-isha">Until --</span></div>
+        <div class="grid-item" data-key="fajr"><span class="prayer-symbol">☀</span><span class="p-name" id="name-fajr">Fajr</span><span class="p-time" id="time-fajr">--:--</span><span class="p-limit" id="limit-fajr">Limit: --</span></div>
+        <div class="grid-item" data-key="dhuhr"><span class="prayer-symbol">☼</span><span class="p-name" id="name-dhuhr">Dhuhr</span><span class="p-time" id="time-dhuhr">--:--</span><span class="p-limit" id="limit-dhuhr">Limit: --</span></div>
+        <div class="grid-item" data-key="asr"><span class="prayer-symbol">◉</span><span class="p-name" id="name-asr">Asr</span><span class="p-time" id="time-asr">--:--</span><span class="p-limit" id="limit-asr">Limit: --</span></div>
+        <div class="grid-item" data-key="maghrib"><span class="prayer-symbol">☼</span><span class="p-name" id="name-maghrib">Maghrib</span><span class="p-time" id="time-maghrib">--:--</span><span class="p-limit" id="limit-maghrib">Limit: --</span></div>
+        <div class="grid-item" data-key="isha"><span class="prayer-symbol">☾</span><span class="p-name" id="name-isha">Isha</span><span class="p-time" id="time-isha">--:--</span><span class="p-limit" id="limit-isha">Limit: --</span></div>
       </div>
     </section>
-
     <nav class="actions-row" aria-label="Quick actions">
-      <button class="btn btn-primary" id="btn-open-dashboard" type="button"><span class="btn-icon" aria-hidden="true">▦</span><span id="label-open-dashboard">Open Dashboard</span><span class="btn-arrow" aria-hidden="true">↗</span></button>
+      <button class="btn btn-primary" id="btn-open-dashboard" type="button"><span class="btn-icon" aria-hidden="true">▦</span><span id="label-open-dashboard">Open Dashboard</span><span class="btn-arrow" aria-hidden="true">›</span></button>
       <button class="btn btn-secondary" id="btn-open-settings" type="button"><span class="btn-icon" aria-hidden="true">⚙</span><span id="label-open-settings">Settings</span></button>
     </nav>
-
-    <footer class="popup-footer">
-      <span class="location-pin" aria-hidden="true">⌖</span>
-      <span id="location-label">Chattogram, Bangladesh (Asia/Dhaka)</span>
-    </footer>
+    <footer class="popup-footer"><span class="footer-rule"></span><span class="location-pin" aria-hidden="true">●</span><span id="location-label">Chattogram, Bangladesh (Asia/Dhaka)</span><span class="footer-rule"></span></footer>
   </main>
   <script type="module" src="popup.js"></script>
 </body>

@@ -162,42 +162,50 @@ function startLiveCountdown(schedule, settings = {}) {
     if (!nextInfo || !nextInfo.next) return;
 
     const next = nextInfo.next;
-    const nameEl = document.getElementById('next-prayer-name');
-    const timeEl = document.getElementById('next-prayer-time');
-    const limitEl = document.getElementById('next-prayer-limit');
+    const current = nextInfo.current;
+    const nextNameEl = document.getElementById('next-prayer-name');
+    const nextTimeEl = document.getElementById('next-prayer-time');
+    const currentTitleEl = document.getElementById('present-prayer-title');
+    const currentNameEl = document.getElementById('current-prayer-name');
+    const currentWindowEl = document.getElementById('current-prayer-window');
+    const currentLimitEl = document.getElementById('current-prayer-limit');
+    const currentRangeEl = document.getElementById('present-prayer-time-range');
     const countEl = document.getElementById('countdown-text');
 
-    if (nameEl) {
-      nameEl.textContent = currentLang === 'bn' ? `${next.name} (${next.arabicName})` : `${next.nameEn} (${next.arabicName})`;
-    }
-    if (timeEl) {
-      const formatted = formatDisplayTime(next.time, fmt);
-      timeEl.textContent = currentLang === 'bn' ? toBengaliNumerals(formatted) : formatted;
-    }
-    if (limitEl) {
-      const winStr = currentLang === 'bn' ? next.windowBn : next.windowEn;
-      const limitLabel = currentLang === 'bn' ? next.limitBn : next.limitEn;
-      limitEl.textContent = currentLang === 'bn'
-        ? `সময়সীমা: ${toBengaliNumerals(winStr)} (${limitLabel})`
-        : `Time Window: ${winStr} (${limitLabel})`;
+    if (nextNameEl) nextNameEl.textContent = currentLang === 'bn' ? next.name : next.nameEn;
+    if (nextTimeEl) {
+      const nextTime = formatDisplayTime(next.time, fmt);
+      nextTimeEl.textContent = currentLang === 'bn' ? toBengaliNumerals(nextTime) : nextTime;
     }
 
-    // Present Salah / Current Window banner
-    const presentBanner = document.getElementById('present-prayer-banner');
-    const presentTitle = document.getElementById('present-prayer-title');
-    const presentRange = document.getElementById('present-prayer-time-range');
-    if (presentBanner && presentTitle && presentRange) {
-      if (nextInfo.current) {
-        const cur = nextInfo.current;
-        const curName = currentLang === 'bn' ? cur.name : cur.nameEn;
-        const curWin = currentLang === 'bn' ? toBengaliNumerals(cur.windowBn || '') : (cur.windowEn || '');
-        presentBanner.style.display = 'flex';
-        presentTitle.textContent = `${currentLang === 'bn' ? 'বর্তমান ওয়াক্ত:' : 'Present Window:'} ${curName}`;
-        presentRange.textContent = curWin;
-      } else {
-        presentBanner.style.display = 'none';
-      }
-    }
+    const activePrayer = current || next;
+    const activeName = currentLang === 'bn' ? activePrayer.name : activePrayer.nameEn;
+    const activeWindow = currentLang === 'bn'
+      ? toBengaliNumerals(activePrayer.windowBn || '')
+      : (activePrayer.windowEn || '');
+    const activeLimit = currentLang === 'bn' ? activePrayer.limitBn : activePrayer.limitEn;
+
+    if (currentTitleEl) currentTitleEl.textContent = current
+      ? (currentLang === 'bn' ? 'বর্তমান ওয়াক্ত' : 'Present Window')
+      : (currentLang === 'bn' ? 'পরবর্তী ওয়াক্ত' : 'Upcoming Prayer');
+    if (currentNameEl) currentNameEl.textContent = activeName;
+    if (currentWindowEl) currentWindowEl.textContent = current
+      ? (currentLang === 'bn' ? `ওয়াক্তের সময়: ${activeWindow}` : `Time Window: ${activeWindow}`)
+      : (currentLang === 'bn' ? 'পরবর্তী আযানের সময় ওয়াক্ত শুরু হবে' : 'Prayer window starts at the next adhan');
+    if (currentLimitEl) currentLimitEl.textContent = current
+      ? activeLimit
+      : (currentLang === 'bn' ? 'পরবর্তী ওয়াক্তের জন্য প্রস্তুত হোন' : 'Get ready for the upcoming prayer');
+    if (currentRangeEl) currentRangeEl.textContent = current
+      ? activeWindow
+      : (currentLang === 'bn' ? 'পরবর্তী আযানের সময়' : 'At the next adhan');
+
+    const diff = Math.max(0, next.epoch - Date.now());
+    const totalSec = Math.floor(diff / 1000);
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    const formatted = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (countEl) countEl.textContent = currentLang === 'bn' ? toBengaliNumerals(formatted) : formatted;
 
     // Highlight current active prayer in grid
     document.querySelectorAll('.grid-item').forEach((item) => {
@@ -207,15 +215,6 @@ function startLiveCountdown(schedule, settings = {}) {
         item.classList.remove('active');
       }
     });
-
-    const diff = Math.max(0, next.epoch - Date.now());
-    const totalSec = Math.floor(diff / 1000);
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-
-    const formatted = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    if (countEl) countEl.textContent = currentLang === 'bn' ? toBengaliNumerals(formatted) : formatted;
   };
 
   update();
