@@ -12,7 +12,7 @@ import {
 } from '../modules/quran-timer.js';
 import { renderMonthlyCalendar, renderDateDetails } from '../modules/calendar.js';
 import { searchGlobalCities } from '../modules/cities.js';
-import { checkGitHubUpdate, getInstalledVersion, applyAutoUpdate } from '../modules/version-checker.js';
+import { checkGitHubUpdate, getInstalledVersion } from '../modules/version-checker.js';
 
 let isUIInitialized = false;
 let isRenderingCards = false;
@@ -23,6 +23,7 @@ let dashboardLang = 'en';
 let liveClockInterval = null;
 let cachedSchedule = null;
 let countdownTimer = null;
+let statsRefreshInterval = null;
 
 let quranIsRunning = false;
 let quranStartTime = null;
@@ -46,6 +47,9 @@ async function initDashboard() {
     }
 
     await refreshDashboardData();
+    if (!statsRefreshInterval) {
+      statsRefreshInterval = setInterval(() => loadTodayProgress(), 30000);
+    }
 
     if (window.location.hash === '#settings') {
       openSettingsModal();
@@ -58,6 +62,7 @@ async function initDashboard() {
 async function refreshDashboardData() {
   await loadHeaderAndSettings();
   await applyStaticI18n();
+  await refreshDashboardVersionLabels();
   await loadDailyQuote();
   await loadPrayerTimingsAndCountdown();
   await loadTodayProgress();
@@ -119,6 +124,8 @@ const I18N = {
     labelAsr: "Asr Juristic Method",
     remindGroup: "Reminders & Focus Mode",
     labelNotifCheckbox: "Enable automatic reminder popup when prayer starts",
+    labelStrictMode: "Strict Salah Mode — repeat reminders until a prayer is recorded",
+    strictModeHelp: "Repeat reminders every 10 minutes. Unmarked prayers automatically become missed at their calculated end limit.",
     labelFocusDuration: "Focus Duration (Minutes)",
     labelSnoozeDuration: "Snooze Duration (Minutes)",
     quranGroup: "Quran Goal & Preferences",
@@ -126,7 +133,7 @@ const I18N = {
     labelDisplayName: "Your Name / Title",
     btnCancelSettings: "Cancel",
     btnSaveSettings: "Save Settings",
-    footerText: "Prayer Focus v2.1.0 • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated"
+    footerText: "Prayer Focus v2.2.0 • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated"
   },
   bn: {
     heroBadge: "আজকের ইসলামিক উপদেশ ও দিকনির্দেশনা",
@@ -181,6 +188,8 @@ const I18N = {
     labelAsr: "আসর মাযহাব (Juristic Method)",
     remindGroup: "রিমাইন্ডার ও ফোকাস মোড",
     labelNotifCheckbox: "ওয়াক্ত শুরু হলে স্বয়ংক্রিয় রিমাইন্ডার পপআপ ও অ্যালার্ম চালু রাখুন",
+    labelStrictMode: "কঠোর সালাত মোড — রেকর্ড না করা পর্যন্ত বারবার রিমাইন্ডার দিন",
+    strictModeHelp: "প্রতি ১০ মিনিটে রিমাইন্ডার আসবে। নির্ধারিত শেষ সময়ে রেকর্ড না করা সালাত স্বয়ংক্রিয়ভাবে ছুটে গেছে হিসেবে চিহ্নিত হবে।",
     labelFocusDuration: "ফোকাস সময় (মিনিট)",
     labelSnoozeDuration: "স্নুজ সময় (মিনিট)",
     quranGroup: "কোরআন লক্ষ্য ও পছন্দ",
@@ -188,7 +197,7 @@ const I18N = {
     labelDisplayName: "আপনার নাম / উপাধি",
     btnCancelSettings: "বাতিল",
     btnSaveSettings: "সংরক্ষণ করুন",
-    footerText: "Prayer Focus v2.1.0 • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত"
+    footerText: "Prayer Focus v2.2.0 • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত"
   }
 };
 
@@ -284,6 +293,8 @@ function applyStaticI18n() {
     'label-asr': dict.labelAsr,
     'label-remind-group': dict.remindGroup,
     'label-notif-checkbox': dict.labelNotifCheckbox,
+    'label-strict-mode': dict.labelStrictMode,
+    'strict-mode-help': dict.strictModeHelp,
     'label-focus-duration': dict.labelFocusDuration,
     'label-snooze-duration': dict.labelSnoozeDuration,
     'label-quran-group': dict.quranGroup,
@@ -832,6 +843,7 @@ function setupSettingsModal() {
     const method = parseInt(document.getElementById('setting-method').value, 10);
     const asr = parseInt(document.getElementById('setting-asr').value, 10);
     const notifs = document.getElementById('setting-notifications').checked;
+    const strictSalahMode = document.getElementById('setting-strict-salah').checked;
     const focusDuration = parseInt(document.getElementById('setting-focus-duration').value, 10) || 8;
     const snoozeDuration = parseInt(document.getElementById('setting-snooze-duration').value, 10) || 5;
     const quranGoal = parseInt(document.getElementById('setting-quran-goal').value, 10) || 15;
@@ -853,6 +865,8 @@ function setupSettingsModal() {
       calculationMethod: method,
       asrMethod: asr,
       notificationsEnabled: notifs,
+      strictSalahMode,
+      strictReminderIntervalMinutes: 10,
       focusDurationMinutes: focusDuration,
       snoozeMinutes: snoozeDuration,
       dailyQuranGoalMinutes: quranGoal,
@@ -878,55 +892,64 @@ function setupSettingsModal() {
     updateStatusBox.style.background = 'rgba(16,185,129,0.1)';
     updateStatusBox.style.border = '1px solid rgba(52,211,153,0.3)';
     updateStatusBox.style.color = '#a7f3d0';
-    updateStatusBox.innerHTML = dashboardLang === 'bn' ? '⏳ গিটহাব থেকে রিলিজ যাচাই করা হচ্ছে...' : '⏳ Checking GitHub Releases...';
+    updateStatusBox.textContent = dashboardLang === 'bn'
+      ? '⏳ গিটহাব রিলিজ যাচাই করা হচ্ছে...'
+      : '⏳ Checking GitHub Releases...';
 
-    const res = await checkGitHubUpdate();
-    btnCheckUpdate.disabled = false;
-
-    if (res.error) {
+    try {
+      const result = await checkGitHubUpdate();
+      if (result.error) {
+        updateStatusBox.style.background = 'rgba(239,68,68,0.15)';
+        updateStatusBox.style.border = '1px solid rgba(239,68,68,0.3)';
+        updateStatusBox.style.color = '#fca5a5';
+        updateStatusBox.textContent = `❌ ${result.message}`;
+      } else if (result.hasUpdate) {
+        updateStatusBox.style.background = 'rgba(245,158,11,0.15)';
+        updateStatusBox.style.border = '1px solid rgba(245,158,11,0.4)';
+        updateStatusBox.style.color = '#fde68a';
+        updateStatusBox.innerHTML = `
+          <div style="font-weight:700; margin-bottom:4px;">🚀 ${dashboardLang === 'bn' ? `নতুন সংস্করণ: v${result.latestVersion}` : `Update available: v${result.latestVersion}`}</div>
+          <div style="font-size:11px; opacity:.9; margin-bottom:8px;">${dashboardLang === 'bn' ? `বর্তমান সংস্করণ: v${toBengaliNumerals(result.currentVersion)}` : `Running version: v${result.currentVersion}`}</div>
+          <a href="${result.downloadUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; color:#022c22; background:#10b981; padding:7px 12px; border-radius:8px; font-weight:700; text-decoration:none;">
+            📦 ${dashboardLang === 'bn' ? 'সর্বশেষ এক্সটেনশন ZIP ডাউনলোড' : 'Download Latest Extension ZIP'}
+          </a>
+          <p style="margin-top:8px; font-size:11px; line-height:1.5;">${dashboardLang === 'bn'
+            ? 'ZIP extract করে পুরোনো unpacked ফোল্ডারটি replace করুন, তারপর chrome://extensions পেজে Reload চাপুন। আপনার prayer logs ও settings Chrome storage-এ থাকবে।'
+            : 'For an unpacked install: extract the ZIP over your existing extension folder, then click Reload on chrome://extensions. Your saved prayer logs and settings stay in Chrome storage.'}</p>
+        `;
+      } else {
+        updateStatusBox.style.background = 'rgba(16,185,129,0.15)';
+        updateStatusBox.style.border = '1px solid rgba(52,211,153,0.4)';
+        updateStatusBox.style.color = '#a7f3d0';
+        updateStatusBox.textContent = dashboardLang === 'bn'
+          ? `✅ সর্বশেষ সংস্করণ ব্যবহার করছেন (v${toBengaliNumerals(result.currentVersion)})।`
+          : `✅ You are using the latest version (v${result.currentVersion}).`;
+      }
+    } catch (error) {
       updateStatusBox.style.background = 'rgba(239,68,68,0.15)';
       updateStatusBox.style.border = '1px solid rgba(239,68,68,0.3)';
       updateStatusBox.style.color = '#fca5a5';
-      updateStatusBox.textContent = `❌ ${res.message}`;
-    } else if (res.hasUpdate) {
-      updateStatusBox.style.background = 'rgba(245,158,11,0.15)';
-      updateStatusBox.style.border = '1px solid rgba(245,158,11,0.4)';
-      updateStatusBox.style.color = '#fde68a';
-      updateStatusBox.innerHTML = `
-        <div style="font-weight: 700; margin-bottom: 4px;">🚀 ${dashboardLang === 'bn' ? `নতুন আপডেট উপলব্ধ: v${res.latestVersion}` : `New Update Available: v${res.latestVersion}`}</div>
-        <div style="font-size: 11px; opacity: 0.9; margin-bottom: 8px;">${dashboardLang === 'bn' ? `সংস্থাপিত: v${res.currentVersion}` : `Installed: v${res.currentVersion}`}</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
-          <button type="button" id="btn-apply-auto-update" class="btn btn-primary" style="padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer; background: #10b981; color: #022c22; border: none; border-radius: 8px;">
-            ⚡ ${dashboardLang === 'bn' ? `স্বয়ংক্রিয় আপডেট প্রয়োগ করুন (v${res.latestVersion})` : `Auto-Update to v${res.latestVersion}`}
-          </button>
-          <a href="${res.downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #a7f3d0; font-size: 11px; text-decoration: underline; align-self: center;">
-            📦 ${dashboardLang === 'bn' ? 'জিপ ডাউনলোড (ঐচ্ছিক)' : 'Download ZIP (Optional)'}
-          </a>
-        </div>
-      `;
-
-      const btnAuto = document.getElementById('btn-apply-auto-update');
-      btnAuto?.addEventListener('click', async () => {
-        btnAuto.disabled = true;
-        updateStatusBox.innerHTML = dashboardLang === 'bn' ? '⏳ আপডেট প্রয়োগ করা হচ্ছে...' : '⏳ Applying automatic update...';
-        await applyAutoUpdate(res.latestVersion);
-        await refreshDashboardVersionLabels();
-        updateStatusBox.style.background = 'rgba(16,185,129,0.2)';
-        updateStatusBox.style.border = '1px solid #10b981';
-        updateStatusBox.style.color = '#a7f3d0';
-        updateStatusBox.innerHTML = dashboardLang === 'bn'
-          ? `✅ সফলভাবে v${res.latestVersion} সংস্করণে আপডেট সম্পন্ন হয়েছে!`
-          : `✅ Successfully updated to version v${res.latestVersion}!`;
-      });
-    } else {
-      updateStatusBox.style.background = 'rgba(16,185,129,0.15)';
-      updateStatusBox.style.border = '1px solid rgba(52,211,153,0.4)';
-      updateStatusBox.style.color = '#a7f3d0';
-      updateStatusBox.textContent = dashboardLang === 'bn'
-        ? `✅ আপনি সর্বাধুনিক সংস্করণ ব্যবহার করছেন (v${res.currentVersion})।`
-        : `✅ You are using the latest version (v${res.currentVersion}).`;
+      updateStatusBox.textContent = `❌ ${error?.message || 'Update check failed.'}`;
+    } finally {
+      btnCheckUpdate.disabled = false;
     }
   });
+}
+
+async function refreshDashboardVersionLabels() {
+  const version = await getInstalledVersion();
+  const versionLabel = document.getElementById('label-current-version');
+  const footer = document.getElementById('footer-text');
+  if (versionLabel) {
+    versionLabel.textContent = dashboardLang === 'bn'
+      ? `সংস্থাপিত সংস্করণ: v${toBengaliNumerals(version)}`
+      : `Installed Version: v${version}`;
+  }
+  if (footer) {
+    footer.textContent = dashboardLang === 'bn'
+      ? `Prayer Focus v${toBengaliNumerals(version)} • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত`
+      : `Prayer Focus v${version} • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated`;
+  }
 }
 
 async function openSettingsModal() {
@@ -940,6 +963,7 @@ async function openSettingsModal() {
   document.getElementById('setting-method').value = String(settings.calculationMethod);
   document.getElementById('setting-asr').value = String(settings.asrMethod);
   document.getElementById('setting-notifications').checked = settings.notificationsEnabled;
+  document.getElementById('setting-strict-salah').checked = settings.strictSalahMode !== false;
   document.getElementById('setting-focus-duration').value = settings.focusDurationMinutes;
   document.getElementById('setting-snooze-duration').value = settings.snoozeMinutes;
   document.getElementById('setting-quran-goal').value = settings.dailyQuranGoalMinutes;
