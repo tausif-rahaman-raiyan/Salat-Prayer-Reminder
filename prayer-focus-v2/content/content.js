@@ -119,7 +119,10 @@
     const titleText = isBn ? `এখন ${prayerName} নামাজের সময়` : `It's time for ${prayerName} Prayer`;
     const subText = isBn ? "দুনিয়ার কাজ কিছুক্ষণের জন্য থামিয়ে আল্লাহর ডাকে সাড়া দাও।" : "Pause your worldly tasks for a few moments and answer the call to prayer.";
     const btnFinishedText = isBn ? "✓ নামাজ আদায় করেছি" : "✓ Namaz Finished";
-    const btn1Text = isBn ? "🔒 আমি নামাজে যাচ্ছি" : "🔒 Start Focus (8 Mins)";
+    const autoMarkPrayed = Boolean(state.settings?.notificationsEnabled);
+    const btn1Text = autoMarkPrayed
+      ? (isBn ? "✓ নামাজ আদায় করেছি" : "✓ Mark as Prayed")
+      : (isBn ? "🔒 আমি নামাজে যাচ্ছি" : "🔒 Start Focus (8 Mins)");
     const btn2Text = isBn ? "⏱ ৫ মিনিট পরে মনে করিয়ে দিন" : "⏱ Remind in 5 Mins";
 
       const iconUrl = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL('assets/icons/icon128.png') : '/assets/aistudio/praying_99ed162a.png';
@@ -160,13 +163,23 @@
       };
     }
 
-    // Button 2: I am going to pray (Start 8-min focus session)
+    // Button 2: with automatic prayer reminders enabled, record this prayer
+    // immediately so its reminder overlay will not return for this prayer.
+    // When the option is disabled, preserve the original focus-session action.
     const btnPray = document.getElementById('pf-btn-pray');
     if (btnPray) {
       btnPray.onclick = () => {
         btnPray.disabled = true;
-        chrome.runtime.sendMessage({ action: 'ACTION_PRAY' }, () => {
-          checkState();
+        const action = settings.notificationsEnabled
+          ? 'ACTION_MARK_PRAYED'
+          : 'ACTION_PRAY';
+        chrome.runtime.sendMessage({ action, prayerKey: session.prayerKey }, () => {
+          if (chrome.runtime.lastError) {
+            btnPray.disabled = false;
+            return;
+          }
+          if (action === 'ACTION_MARK_PRAYED') removeOverlay();
+          else checkState();
         });
       };
     }
