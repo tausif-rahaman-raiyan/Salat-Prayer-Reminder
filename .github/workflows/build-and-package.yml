@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
@@ -90,12 +88,6 @@ jobs:
           name: prayer-focus-extension-${{ env.VERSION_TAG }}
           path: dist/packages/prayer-focus-${{ env.VERSION_TAG }}.zip
 
-      - name: Upload GitHub Pages Artifact
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/
-
       - name: Create or Update GitHub Release With Extension ZIPs
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
@@ -125,16 +117,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-website:
-    name: Deploy Website to GitHub Pages
-    needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy Website to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        continue-on-error: true
