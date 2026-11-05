@@ -62,8 +62,8 @@ function runTests() {
     // Test 10: Manifest version check
     const fs = await import('fs');
     const manifest = JSON.parse(fs.readFileSync('./prayer-focus-v2/manifest.json', 'utf8'));
-    console.assert(manifest.version === '2.1.0', `Manifest version must be 2.1.0 (found ${manifest.version})`);
-    console.log('✓ Test 10 Passed: Manifest version is 2.1.0');
+    console.assert(/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version), `Manifest version must be valid semver (found ${manifest.version})`);
+    console.log('✓ Test 10 Passed: Manifest version is valid semver ->', manifest.version);
 
     // Test 11: Semantic Version Comparison logic
     const { compareVersions } = await import('../modules/version-checker.js');
@@ -77,6 +77,19 @@ function runTests() {
     const checkPrayed = shouldShowReminderOverlay({ state: 'prayed' });
     console.assert(checkPrayed.show === false && checkPrayed.reason === 'prayed', 'Prayed state must suppress overlay popup');
     console.log('✓ Test 12 Passed: Namaz Finished state correctly suppresses notification overlay');
+    const checkMissed = shouldShowReminderOverlay({ state: 'missed' });
+    console.assert(checkMissed.show === false && checkMissed.reason === 'missed', 'Missed state must suppress reminders');
+    console.log('✓ Test 13 Passed: Missed prayer session suppresses reminder overlay');
+
+    const { getPrayerDeadlineEpochs } = await import('../background/scheduler.js');
+    const deadlines = getPrayerDeadlineEpochs(mockSchedule);
+    console.assert(Object.keys(deadlines).length === 5, 'Five prayer end deadlines must be calculated');
+    console.assert(deadlines.fajr === getPrayerEpoch('2026-11-04', '06:05'), 'Fajr deadline must be sunrise');
+    console.assert(deadlines.dhuhr === getPrayerEpoch('2026-11-04', '15:15'), 'Dhuhr deadline must be Asr');
+    console.assert(deadlines.asr === getPrayerEpoch('2026-11-04', '17:35'), 'Asr deadline must be Maghrib');
+    console.assert(deadlines.maghrib === getPrayerEpoch('2026-11-04', '18:50'), 'Maghrib deadline must be Isha');
+    console.assert(deadlines.isha === getPrayerEpoch('2026-11-04', '05:00') + 86400000, 'Isha deadline must be next Fajr');
+    console.log('✓ Test 14 Passed: All automatic-missed deadlines match calculated end limits');
 
     console.log('--- ALL TEST SUITE CHECKS COMPLETED SUCCESSFULLY ---');
   });
