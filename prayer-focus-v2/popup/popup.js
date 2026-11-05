@@ -223,4 +223,8 @@ function startLiveCountdown(schedule, settings = {}) {
   countdownTimer = setInterval(update, 1000);
 }
 
-document.addEventListener('DOMContentLoaded', initPopup);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPopup);
+} else {
+  initPopup();
+}

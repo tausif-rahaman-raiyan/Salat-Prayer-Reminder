@@ -16,26 +16,42 @@ import { checkGitHubUpdate } from '../modules/version-checker.js';
 
 let isUIInitialized = false;
 let isRenderingCards = false;
+let currentCalYear = 2026;
+let currentCalMonth = 11;
+let currentSettings = null;
+let dashboardLang = 'en';
+let liveClockInterval = null;
+let cachedSchedule = null;
+let countdownTimer = null;
+
+let quranIsRunning = false;
+let quranStartTime = null;
+let quranAccumulatedSeconds = 0;
+let quranInterval = null;
 
 async function initDashboard() {
-  const dhakaNow = getDhakaNow();
-  currentCalYear = dhakaNow.getFullYear();
-  currentCalMonth = dhakaNow.getMonth() + 1;
+  try {
+    const dhakaNow = getDhakaNow();
+    currentCalYear = dhakaNow.getFullYear();
+    currentCalMonth = dhakaNow.getMonth() + 1;
 
-  currentSettings = await getSettings();
-  dashboardLang = currentSettings.language || 'en';
+    currentSettings = await getSettings();
+    dashboardLang = currentSettings.language || 'en';
 
-  if (!isUIInitialized) {
-    setupLanguageToggle();
-    setupLiveClock();
-    setupSettingsModal();
-    isUIInitialized = true;
-  }
+    if (!isUIInitialized) {
+      setupLanguageToggle();
+      setupLiveClock();
+      setupSettingsModal();
+      isUIInitialized = true;
+    }
 
-  await refreshDashboardData();
+    await refreshDashboardData();
 
-  if (window.location.hash === '#settings') {
-    openSettingsModal();
+    if (window.location.hash === '#settings') {
+      openSettingsModal();
+    }
+  } catch (err) {
+    console.error('[Prayer Focus Dashboard init error]:', err);
   }
 }
 
@@ -176,27 +192,7 @@ const I18N = {
   }
 };
 
-async function initDashboard() {
-  const dhakaNow = getDhakaNow();
-  currentCalYear = dhakaNow.getFullYear();
-  currentCalMonth = dhakaNow.getMonth() + 1;
 
-  currentSettings = await getSettings();
-  dashboardLang = currentSettings.language || 'en';
-
-  if (!isUIInitialized) {
-    setupLanguageToggle();
-    setupLiveClock();
-    setupSettingsModal();
-    isUIInitialized = true;
-  }
-
-  await refreshDashboardData();
-
-  if (window.location.hash === '#settings') {
-    openSettingsModal();
-  }
-}
 
 function setupLanguageToggle() {
   const btnEn = document.getElementById('lang-btn-en');
@@ -949,4 +945,8 @@ async function refreshAllPrayerViews() {
   await initCalendar();
 }
 
-document.addEventListener('DOMContentLoaded', initDashboard);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
