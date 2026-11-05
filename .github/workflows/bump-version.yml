@@ -45,14 +45,14 @@ jobs:
           import fs from 'node:fs';
 
           const read = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
-          const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\\n');
+          const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 
           const packageJson = read('package.json');
           const lock = read('package-lock.json');
           const manifest = read('prayer-focus-v2/manifest.json');
           const current = packageJson.version;
 
-          if (!/^\\d+\\.\\d+\\.\\d+$/.test(current)) {
+          if (!/^\d+\.\d+\.\d+$/.test(current)) {
             throw new Error('package.json version must use MAJOR.MINOR.PATCH semver.');
           }
 
@@ -72,7 +72,7 @@ jobs:
           write('package-lock.json', lock);
           write('prayer-focus-v2/manifest.json', manifest);
 
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${next}\\nprevious=${current}\\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${next}\nprevious=${current}\n`);
           console.log(`Version bumped: ${current} -> ${next}`);
           NODE
 
