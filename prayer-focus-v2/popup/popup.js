@@ -58,15 +58,11 @@ function setupPopupLanguageToggle() {
   const updateToggleStyle = () => {
     if (btnEn && btnBn) {
       if (currentLang === 'en') {
-        btnEn.style.background = '#10b981';
-        btnEn.style.color = '#022c22';
-        btnBn.style.background = 'transparent';
-        btnBn.style.color = '#a7f3d0';
+        btnEn.setAttribute('aria-pressed', 'true');
+        btnBn.setAttribute('aria-pressed', 'false');
       } else {
-        btnBn.style.background = '#10b981';
-        btnBn.style.color = '#022c22';
-        btnEn.style.background = 'transparent';
-        btnEn.style.color = '#a7f3d0';
+        btnBn.setAttribute('aria-pressed', 'true');
+        btnEn.setAttribute('aria-pressed', 'false');
       }
     }
   };
@@ -93,6 +89,7 @@ function setupPopupLanguageToggle() {
 async function refreshPopupUI() {
   const settings = await getSettings();
   const dict = POPUP_I18N[currentLang];
+  document.documentElement.lang = currentLang === 'bn' ? 'bn' : 'en';
 
   // Set location label
   const locEl = document.getElementById('location-label');
@@ -102,6 +99,8 @@ async function refreshPopupUI() {
   const statusEl = document.getElementById('status-label');
   if (statusEl) {
     statusEl.textContent = settings.notificationsEnabled ? dict.active : dict.disabled;
+    const badge = document.getElementById('reminder-status-badge');
+    if (badge) badge.dataset.active = String(Boolean(settings.notificationsEnabled));
   }
 
   // Label updates
