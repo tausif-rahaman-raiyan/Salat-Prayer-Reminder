@@ -129,7 +129,7 @@ The included file `.github/workflows/build-and-package.yml` automatically trigge
 1. Installs project dependencies.
 2. Runs the TypeScript linter and automated test suite.
 3. Builds the production web app (`dist/`).
-4. Generates `prayer-focus-v2.0.0.zip` containing the installable Chrome extension.
+4. Automatically increments release version tag (`v2.1.X`) and packages `prayer-focus.zip`.
 5. Uploads both as downloadable GitHub artifacts.
 
 ---
@@ -194,7 +194,7 @@ The included file `.github/workflows/build-and-package.yml` automatically trigge
 │   ├── main.tsx
 │   └── index.css
 ├── public/
-│   └── prayer-focus-v2.0.0.zip    # Ready-to-download packaged extension
+│   └── prayer-focus.zip           # Ready-to-download packaged extension
 └── README.md                      # Comprehensive A-Z Documentation
 ```
 

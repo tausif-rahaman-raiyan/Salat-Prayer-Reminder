@@ -20,6 +20,14 @@
 
 #prayer-focus-overlay-root * {
   box-sizing: border-box !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#prayer-focus-overlay-root *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .pf-card {

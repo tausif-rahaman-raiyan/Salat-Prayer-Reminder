@@ -89,7 +89,7 @@ export const TRANSLATIONS = {
     },
 
     // Footer
-    footerText: "Prayer Focus v2.0.0 • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated"
+    footerText: "Prayer Focus v2.1.0 • Preserves Chrome New Tab • Asia/Dhaka Timezone Calibrated"
   },
   bn: {
     // Top Nav
@@ -179,6 +179,6 @@ export const TRANSLATIONS = {
     btnExitPreview: "সেশন প্রিভিউ বন্ধ করুন",
     
     // Footer
-    footerText: "Prayer Focus v2.0.0 • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত"
+    footerText: "Prayer Focus v2.1.0 • গুগল ক্রোমের অরিজিনাল New Tab সংরক্ষিত • Asia/Dhaka সময় অনুযায়ী গণনাকৃত"
   }
 };

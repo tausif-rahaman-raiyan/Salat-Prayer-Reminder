@@ -2,21 +2,36 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-body {
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html, body {
   width: 360px;
   background-color: #022c22;
   color: #f0fdf4;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   user-select: none;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 .popup-container {
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 70%), #022c22;
+  border-radius: 20px;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 .popup-header {

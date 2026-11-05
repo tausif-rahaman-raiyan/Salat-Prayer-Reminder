@@ -197,6 +197,9 @@ export function calculateNextPrayer(schedule, offsets = {}) {
   const dateStr = schedule.date;
   const windows = getPrayerWindows(schedule, offsets);
 
+  const sunriseTime = schedule.sunrise ? schedule.sunrise.split(' ')[0] : '06:05';
+  const sunriseEpoch = getPrayerEpoch(dateStr, sunriseTime);
+
   const prayerKeys = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   const list = prayerKeys.map((key) => {
     const rawTime = schedule.timings[key];
@@ -220,7 +223,14 @@ export function calculateNextPrayer(schedule, offsets = {}) {
     };
   });
 
-  // Find next prayer today
+  // Assign exact endLimitEpoch for each prayer window
+  list[0].endEpoch = sunriseEpoch; // Fajr ends at Sunrise
+  list[1].endEpoch = list[2].epoch; // Dhuhr ends at Asr
+  list[2].endEpoch = list[3].epoch; // Asr ends at Maghrib
+  list[3].endEpoch = list[4].epoch; // Maghrib ends at Isha
+  list[4].endEpoch = list[0].epoch + 24 * 60 * 60 * 1000; // Isha ends at Fajr tomorrow
+
+  // Find next prayer and candidate current prayer
   let currentPrayer = null;
   let nextPrayer = null;
 
@@ -233,23 +243,18 @@ export function calculateNextPrayer(schedule, offsets = {}) {
     }
   }
 
+  // Check if candidate current prayer's end limit has passed
+  if (currentPrayer && (now >= currentPrayer.endEpoch || now < currentPrayer.epoch)) {
+    currentPrayer = null;
+  }
+
   // If now is past Isha, the next prayer is Fajr tomorrow
   if (!nextPrayer) {
-    // Tomorrow's Fajr
     const tomorrowEpoch = list[0].epoch + 24 * 60 * 60 * 1000;
     nextPrayer = {
       ...list[0],
       epoch: tomorrowEpoch,
       isTomorrow: true
-    };
-  }
-
-  // If before Fajr today, current prayer was Isha of yesterday
-  if (!currentPrayer) {
-    currentPrayer = {
-      ...list[4],
-      epoch: list[4].epoch - 24 * 60 * 60 * 1000,
-      isYesterday: true
     };
   }
 

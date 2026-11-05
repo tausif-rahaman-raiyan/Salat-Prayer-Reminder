@@ -1,15 +1,16 @@
-import { getDhakaDateString } from './timezone.js';
-import { getStorageData, setStorageData } from './storage.js';
+import { getDhakaDateString, getPrayerEpoch } from './timezone.js';
+import { getStorageData, setStorageData, getSettings } from './storage.js';
+import { fetchPrayerTimings, applyTimeOffset } from './prayer-api.js';
 
 export const PRAYER_LIST = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
 /**
- * Gets recorded prayer data for a date. Empty records if none exist.
+ * Gets recorded prayer data for a date. Auto-marks expired un-marked prayers as 'missed'.
  */
 export async function getPrayerRecordForDate(dateStr = getDhakaDateString()) {
   const key = `prayer_log_${dateStr}`;
   const data = await getStorageData(key);
-  return data[key] || {
+  const record = data[key] || {
     date: dateStr,
     fajr: 'none',
     dhuhr: 'none',
@@ -18,6 +19,55 @@ export async function getPrayerRecordForDate(dateStr = getDhakaDateString()) {
     isha: 'none',
     updatedAt: null
   };
+
+  // Auto-mark expired prayers as missed if window end limit has passed
+  try {
+    const todayStr = getDhakaDateString();
+    if (dateStr <= todayStr) {
+      const schedule = await fetchPrayerTimings();
+      if (schedule && schedule.timings) {
+        const settings = await getSettings();
+        const offsets = settings.timingOffsets || {};
+        const now = Date.now();
+        const sunriseTime = schedule.sunrise ? schedule.sunrise.split(' ')[0] : '06:05';
+        
+        const fajrEpoch = getPrayerEpoch(dateStr, applyTimeOffset(schedule.timings.fajr, offsets.fajr || 0));
+        const sunriseEpoch = getPrayerEpoch(dateStr, sunriseTime);
+        const dhuhrEpoch = getPrayerEpoch(dateStr, applyTimeOffset(schedule.timings.dhuhr, offsets.dhuhr || 0));
+        const asrEpoch = getPrayerEpoch(dateStr, applyTimeOffset(schedule.timings.asr, offsets.asr || 0));
+        const maghribEpoch = getPrayerEpoch(dateStr, applyTimeOffset(schedule.timings.maghrib, offsets.maghrib || 0));
+        const ishaEpoch = getPrayerEpoch(dateStr, applyTimeOffset(schedule.timings.isha, offsets.isha || 0));
+        const fajrTomorrowEpoch = fajrEpoch + 24 * 60 * 60 * 1000;
+
+        const endLimits = {
+          fajr: sunriseEpoch,
+          dhuhr: asrEpoch,
+          asr: maghribEpoch,
+          maghrib: ishaEpoch,
+          isha: fajrTomorrowEpoch
+        };
+
+        let hasChanges = false;
+        PRAYER_LIST.forEach((pKey) => {
+          if (dateStr < todayStr || (dateStr === todayStr && now >= endLimits[pKey])) {
+            if (record[pKey] === 'none') {
+              record[pKey] = 'missed';
+              hasChanges = true;
+            }
+          }
+        });
+
+        if (hasChanges) {
+          record.updatedAt = Date.now();
+          await setStorageData({ [key]: record });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Prayer Focus Tracker] Auto-missed calculation skipped:', err.message);
+  }
+
+  return record;
 }
 
 /**

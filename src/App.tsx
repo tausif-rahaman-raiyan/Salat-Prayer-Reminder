@@ -353,8 +353,8 @@ export default function App() {
             </button>
 
             <a
-              href="/prayer-focus-v2.1.0.zip"
-              download="prayer-focus-v2.1.0.zip"
+              href="./prayer-focus.zip"
+              download="prayer-focus.zip"
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-emerald-950 transition shadow-md shadow-emerald-500/20"
             >
               <Download className="w-4 h-4" />
@@ -1097,7 +1097,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-5 text-sm">
+            <div className="p-6 overflow-y-auto space-y-5 text-sm no-scrollbar [scrollbar-width:none] [ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {/* City Autocomplete & Location */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{isEn ? 'Location & Global City Auto-Search' : 'অবস্থান ও আন্তর্জাতিক শহর সার্চ'}</h4>

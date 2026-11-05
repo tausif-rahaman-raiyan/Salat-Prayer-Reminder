@@ -33,7 +33,7 @@ git init`,
     `# 2. Add all extension, website, and GitHub Actions workflow files
 git add .`,
     `# 3. Create your initial commit
-git commit -m "feat: release Prayer Focus v2.0.0 Chrome extension and website"`,
+git commit -m "feat: release Prayer Focus Chrome extension and companion web dashboard"`,
     `# 4. Set the default branch to main
 git branch -M main`,
     `# 5. Link to your GitHub remote repository (replace with your repo URL)
@@ -87,22 +87,31 @@ jobs:
       - name: Build Web Application
         run: npm run build
 
+      - name: Auto-increment Version Tag from GitHub Run Number
+        id: compute_version
+        run: |
+          VERSION="2.1.\${{ github.run_number }}"
+          echo "VERSION=\$VERSION" >> \$GITHUB_ENV
+          echo "VERSION_TAG=v\$VERSION" >> \$GITHUB_ENV
+          node -e "const fs = require('fs'); const path = './prayer-focus-v2/manifest.json'; const m = JSON.parse(fs.readFileSync(path)); m.version = '\$VERSION'; fs.writeFileSync(path, JSON.stringify(m, null, 2));"
+
       - name: Package Chrome Extension ZIP
         run: |
           mkdir -p dist/packages
           cd prayer-focus-v2
-          zip -r ../dist/packages/prayer-focus-v2.0.0.zip ./* -x "tests/*"
+          zip -r ../dist/packages/prayer-focus-\${{ env.VERSION_TAG }}.zip ./* -x "tests/*"
+          zip -r ../dist/packages/prayer-focus.zip ./* -x "tests/*"
           cd ..
-          cp dist/packages/prayer-focus-v2.0.0.zip public/prayer-focus-v2.0.0.zip 2>/dev/null || true
-          cp dist/packages/prayer-focus-v2.0.0.zip dist/prayer-focus-v2.0.0.zip 2>/dev/null || true
+          cp dist/packages/prayer-focus.zip public/prayer-focus.zip 2>/dev/null || true
+          cp dist/packages/prayer-focus.zip dist/prayer-focus.zip 2>/dev/null || true
           echo "Extension zip packaged successfully!"
           ls -lh dist/packages/
 
       - name: Upload Extension ZIP Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: prayer-focus-extension-v2.0.0
-          path: dist/packages/prayer-focus-v2.0.0.zip
+          name: prayer-focus-extension-\${{ env.VERSION_TAG }}
+          path: dist/packages/prayer-focus-\${{ env.VERSION_TAG }}.zip
 
       - name: Upload GitHub Pages Artifact
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -114,18 +123,20 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.0
-          name: "Prayer Focus v2.0.0"
+          tag_name: \${{ env.VERSION_TAG }}
+          name: "Prayer Focus \${{ env.VERSION_TAG }}"
           body: |
-            ## 🕌 Prayer Focus v2.0.0 Release
+            ## 🕌 Prayer Focus \${{ env.VERSION_TAG }} Automated Release
             Automated production build of the Prayer Focus Chrome Extension (Manifest V3) & Website.
             
             ### 📦 Download & Install:
-            - Download prayer-focus-v2.0.0.zip attached below.
+            - Download prayer-focus.zip or prayer-focus-\${{ env.VERSION_TAG }}.zip attached below.
             - Extract the zip file.
             - In Chrome, open chrome://extensions/ and enable Developer Mode.
             - Click Load unpacked and select the folder that directly contains manifest.json.
-          files: dist/packages/prayer-focus-v2.0.0.zip
+          files: |
+            dist/packages/prayer-focus-\${{ env.VERSION_TAG }}.zip
+            dist/packages/prayer-focus.zip
           draft: false
           prerelease: false
         env:
@@ -260,8 +271,8 @@ jobs:
           </div>
           <p className="text-xs text-amber-200/80">
             {isEn
-              ? 'Tip: If using prayer-focus-v2.0.0.zip, make sure to extract (unzip) it first into a normal folder before clicking "Load unpacked".'
-              : 'টিপস: prayer-focus-v2.0.0.zip ডাউনলোড করলে আগে আনজিপ করে সাধারণ ফোল্ডারে রূপান্তর করুন, তারপর ক্রোম থেকে সিলেক্ট করুন।'}
+              ? 'Tip: If using prayer-focus.zip, make sure to extract (unzip) it first into a normal folder before clicking "Load unpacked".'
+              : 'টিপস: prayer-focus.zip ডাউনলোড করলে আগে আনজিপ করে সাধারণ ফোল্ডারে রূপান্তর করুন, তারপর ক্রোম থেকে সিলেক্ট করুন।'}
           </p>
         </div>
       </div>
@@ -373,8 +384,8 @@ jobs:
         <ol className="list-decimal list-inside space-y-2.5 text-xs md:text-sm text-emerald-200/90 leading-relaxed">
           <li>
             {isEn
-              ? 'Download "prayer-focus-v2.0.0.zip" from the top-right button.'
-              : 'ওপরের ডানপাশের বাটন থেকে "prayer-focus-v2.0.0.zip" ডাউনলোড করুন।'}
+              ? 'Download "prayer-focus.zip" from the top-right button.'
+              : 'ওপরের ডানপাশের বাটন থেকে "prayer-focus.zip" ডাউনলোড করুন।'}
           </li>
           <li>
             {isEn
