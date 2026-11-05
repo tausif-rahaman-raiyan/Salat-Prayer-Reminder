@@ -37,15 +37,18 @@ jobs:
           npm run lint
           node prayer-focus-v2/tests/prayer-engine.test.js
 
-      - name: Generate One Release Version
+      - name: Read the single source version
         id: compute_version
         run: |
-          VERSION="2.2.${{ github.run_number }}"
-          export VERSION
+          VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./prayer-focus-v2/manifest.json').version")"
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::package.json ($VERSION) and extension manifest ($MANIFEST_VERSION) versions differ."
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "VERSION_TAG=v$VERSION" >> "$GITHUB_ENV"
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
-          node -e "const fs=require('fs'); const p='./prayer-focus-v2/manifest.json'; const m=JSON.parse(fs.readFileSync(p,'utf8')); m.version=process.env.VERSION; fs.writeFileSync(p, JSON.stringify(m,null,2)+'\\n');"
           echo "Release version: v$VERSION"
 
       - name: Package Chrome Extension ZIPs
