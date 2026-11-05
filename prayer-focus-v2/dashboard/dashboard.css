@@ -996,3 +996,16 @@ body {
   font-size: 11px;
   line-height: 1.5;
 }
+
+
+/* Keep prayer status selection stable: update only the pressed card, not the full grid. */
+.prayer-card .action-status-btn {
+  transition: background-color .14s ease, border-color .14s ease, color .14s ease;
+  transform: none !important;
+  backface-visibility: hidden;
+}
+.prayer-card .action-status-btn:hover,
+.prayer-card .action-status-btn:active { transform: none !important; }
+.prayer-card .action-status-btn:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+.prayer-card .action-status-btn:disabled { cursor: wait; opacity: .72; }
+.prayer-card.status-saving { outline: 1px solid rgba(52,211,153,.18); outline-offset: 2px; }
