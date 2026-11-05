@@ -1,5 +1,5 @@
 # Prayer Focus – Pray • Focus • Grow
-**Version: 2.1.0**  
+**Version: 2.2.0**  
 Platform: Google Chrome (Manifest V3)  
 Default Location: Chattogram, Bangladesh  
 Timezone: `Asia/Dhaka` (UTC+6, strictly handled without DST assumptions)
@@ -53,7 +53,7 @@ Timezone: `Asia/Dhaka` (UTC+6, strictly handled without DST assumptions)
 ## 🚀 How to Install in Google Chrome (Developer Mode)
 
 1. **Download / Extract**:
-   - Download the file `prayer-focus-v2.1.0.zip` or use the `prayer-focus-v2` directory.
+   - Download the file `prayer-focus-v2.2.0.zip` or use the `prayer-focus-v2` directory.
    - Unzip if using the zip archive so you have the `prayer-focus-v2` folder containing `manifest.json`.
 2. **Open Chrome Extension Manager**:
    - In Google Chrome address bar, navigate to: `chrome://extensions/`
