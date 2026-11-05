@@ -1,5 +1,5 @@
 import { setupAlarms, PRAYER_CHECK_ALARM, PRAYER_END_ALARM_PREFIX, checkPrayerSchedule, notifyOpenTabsToShowOverlay } from './scheduler.js';
-import { getActiveSession, setActiveSession, startFocusSession, snoozeSession, finishPrayerSession, shouldShowReminderOverlay } from './session-manager.js';
+import { getActiveSession, setActiveSession, startFocusSession, snoozeSession, shouldShowReminderOverlay } from './session-manager.js';
 import { fetchPrayerTimings } from '../modules/prayer-api.js';
 import { getDailyQuote } from '../modules/quotes.js';
 import { getDhakaDateString } from '../modules/timezone.js';
