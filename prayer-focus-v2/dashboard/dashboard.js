@@ -450,23 +450,50 @@ async function renderPrayerCards(schedule) {
 
     const btnPrayed = card.querySelector('[data-status="prayed"]');
     const btnMissed = card.querySelector('[data-status="missed"]');
+    let currentStatus = status;
+    let statusWritePending = false;
 
-    btnPrayed.onclick = async () => {
-      const newStatus = status === 'prayed' ? 'none' : 'prayed';
-      await recordPrayerStatus(todayStr, key, newStatus);
-      if (newStatus === 'prayed' && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({ action: 'ACTION_MARK_PRAYED', prayerKey: key }, () => {
-          if (chrome.runtime.lastError) { /* ignore */ }
-        });
+    const paintStatus = (nextStatus) => {
+      currentStatus = nextStatus;
+      btnPrayed.classList.toggle('selected-prayed', nextStatus === 'prayed');
+      btnMissed.classList.toggle('selected-missed', nextStatus === 'missed');
+      btnPrayed.setAttribute('aria-pressed', String(nextStatus === 'prayed'));
+      btnMissed.setAttribute('aria-pressed', String(nextStatus === 'missed'));
+      card.dataset.status = nextStatus;
+    };
+
+    const saveStatusWithoutRebuildingCards = async (requestedStatus) => {
+      if (statusWritePending || requestedStatus === currentStatus) return;
+      const previousStatus = currentStatus;
+      statusWritePending = true;
+      btnPrayed.disabled = true;
+      btnMissed.disabled = true;
+      card.classList.add('status-saving');
+      paintStatus(requestedStatus);
+      try {
+        await recordPrayerStatus(todayStr, key, requestedStatus);
+        if (requestedStatus === 'prayed' && typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'ACTION_MARK_PRAYED', prayerKey: key }, () => {
+            if (chrome.runtime.lastError) { /* message channel may close during navigation */ }
+          });
+        }
+        await loadTodayProgress();
+        await initCalendar();
+      } catch (error) {
+        paintStatus(previousStatus);
+        console.error('[Prayer Focus] Could not save prayer status:', error);
+      } finally {
+        statusWritePending = false;
+        btnPrayed.disabled = false;
+        btnMissed.disabled = false;
+        card.classList.remove('status-saving');
       }
-      await refreshAllPrayerViews();
     };
 
-    btnMissed.onclick = async () => {
-      const newStatus = status === 'missed' ? 'none' : 'missed';
-      await recordPrayerStatus(todayStr, key, newStatus);
-      await refreshAllPrayerViews();
-    };
+    btnPrayed.setAttribute('aria-pressed', String(status === 'prayed'));
+    btnMissed.setAttribute('aria-pressed', String(status === 'missed'));
+    btnPrayed.onclick = () => saveStatusWithoutRebuildingCards(currentStatus === 'prayed' ? 'none' : 'prayed');
+    btnMissed.onclick = () => saveStatusWithoutRebuildingCards(currentStatus === 'missed' ? 'none' : 'missed');
 
     container.appendChild(card);
   });
@@ -910,13 +937,23 @@ function setupSettingsModal() {
         updateStatusBox.innerHTML = `
           <div style="font-weight:700; margin-bottom:4px;">🚀 ${dashboardLang === 'bn' ? `নতুন সংস্করণ: v${result.latestVersion}` : `Update available: v${result.latestVersion}`}</div>
           <div style="font-size:11px; opacity:.9; margin-bottom:8px;">${dashboardLang === 'bn' ? `বর্তমান সংস্করণ: v${toBengaliNumerals(result.currentVersion)}` : `Running version: v${result.currentVersion}`}</div>
-          <a href="${result.downloadUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; color:#022c22; background:#10b981; padding:7px 12px; border-radius:8px; font-weight:700; text-decoration:none;">
-            📦 ${dashboardLang === 'bn' ? 'সর্বশেষ এক্সটেনশন ZIP ডাউনলোড' : 'Download Latest Extension ZIP'}
-          </a>
-          <p style="margin-top:8px; font-size:11px; line-height:1.5;">${dashboardLang === 'bn'
-            ? 'ZIP extract করে পুরোনো unpacked ফোল্ডারটি replace করুন, তারপর chrome://extensions পেজে Reload চাপুন। আপনার prayer logs ও settings Chrome storage-এ থাকবে।'
-            : 'For an unpacked install: extract the ZIP over your existing extension folder, then click Reload on chrome://extensions. Your saved prayer logs and settings stay in Chrome storage.'}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <a href="${result.downloadUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;color:#022c22;background:linear-gradient(110deg,#54edba,#05bd86);padding:9px 13px;border-radius:9px;font-weight:800;text-decoration:none;">
+              ⬇ ${dashboardLang === 'bn' ? 'আপডেট ZIP ডাউনলোড' : 'Download Update ZIP'}
+            </a>
+            <button type="button" id="btn-open-chrome-extensions" style="display:inline-flex;align-items:center;gap:7px;color:#eafff5;background:rgba(255,255,255,.1);border:1px solid rgba(181,255,228,.2);padding:9px 13px;border-radius:9px;font-weight:700;cursor:pointer;">
+              ${dashboardLang === 'bn' ? 'এক্সটেনশন Reload পেজ খুলুন' : 'Open Extension Reload Page'}
+            </button>
+          </div>
+          <p style="margin-top:9px;font-size:11px;line-height:1.55;opacity:.9;">${dashboardLang === 'bn'
+            ? 'Chrome-এর নিরাপত্তার কারণে Developer Mode-এর unpacked extension নিজে থেকে নিজের ফাইল overwrite করতে পারে না। ZIP extract করে আগের extension folder replace করুন, তারপর Chrome Extensions পেজে Reload চাপুন। আপনার prayer logs ও settings অক্ষত থাকবে।'
+            : 'Chrome security does not let an unpacked Developer Mode extension overwrite its own files. Extract this ZIP over the existing extension folder, then click Reload on chrome://extensions. Your prayer logs and settings remain stored in Chrome.'}</p>
         `;
+        document.getElementById('btn-open-chrome-extensions')?.addEventListener('click', () => {
+          if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+            chrome.tabs.create({ url: 'chrome://extensions/' });
+          }
+        });
       } else {
         updateStatusBox.style.background = 'rgba(16,185,129,0.15)';
         updateStatusBox.style.border = '1px solid rgba(52,211,153,0.4)';
