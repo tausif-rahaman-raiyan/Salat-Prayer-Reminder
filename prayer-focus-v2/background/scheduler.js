@@ -54,6 +54,22 @@ export async function checkPrayerSchedule(broadcast = true) {
   const today = getDhakaDateString();
   // This also catches up an end-limit transition if Chrome was suspended.
   const todayRecord = await getPrayerRecordForDate(today, schedule);
+  // If the tracker caught an expired record first, also dismiss its active overlay.
+  const currentSession = await getActiveSession();
+  if (currentSession?.date === today) {
+    const recordedStatus = todayRecord[currentSession.prayerKey];
+    if (['prayed', 'missed'].includes(recordedStatus) && currentSession.state !== recordedStatus) {
+      await setActiveSession({
+        ...currentSession,
+        state: recordedStatus,
+        completedAt: Date.now(),
+        snoozeUntil: null,
+        focusStart: null,
+        focusEnd: null
+      });
+      if (broadcast) notifyOpenTabsToShowOverlay();
+    }
+  }
   if (!settings.notificationsEnabled) return;
 
   const nextInfo = calculateNextPrayer(schedule, settings.timingOffsets || {});
